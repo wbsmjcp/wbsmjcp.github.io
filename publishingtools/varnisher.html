@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Tidy — learning-content cleaner</title>
+<style>
+  :root {
+    --wbs: #4F2D7F;        /* WBS aubergine, used sparingly as the one accent */
+    --wbs-dark: #3a2160;
+    --ink: #1c1c20;
+    --muted: #6b6b76;
+    --line: #e3e1e8;
+    --panel: #ffffff;
+    --bg: #f6f5f8;
+    --good: #1f7a4d;
+    --good-bg: #e9f6ef;
+    --warn: #9a5b00;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--wbs);
+    color: #fff;
+    padding: 18px 24px;
+  }
+  header h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: .2px; }
+  header p { margin: 4px 0 0; font-size: .85rem; opacity: .85; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .layout { display: grid; grid-template-columns: 250px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .opt:last-child { border-bottom: none; }
+  .opt input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--wbs); flex: none; }
+  .opt label { font-size: .9rem; cursor: pointer; }
+  .opt .desc { display: block; font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .opt.provisional label::after {
+    content: "needs your markup";
+    display: inline-block;
+    margin-left: 6px;
+    font-size: .65rem;
+    color: var(--warn);
+    border: 1px solid var(--warn);
+    border-radius: 4px;
+    padding: 0 4px;
+    vertical-align: middle;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  details.adv { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+  details.adv summary { font-size: .8rem; color: var(--wbs); cursor: pointer; font-weight: 600; }
+  details.adv label { display: block; font-size: .75rem; color: var(--muted); margin: 10px 0 4px; }
+  details.adv textarea {
+    width: 100%; min-height: 56px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .72rem; border: 1px solid var(--line); border-radius: 6px; padding: 6px; resize: vertical;
+  }
+
+  .editors { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .editors { grid-template-columns: 1fr; } }
+  .editor h3 { margin: 0 0 6px; font-size: .85rem; display: flex; justify-content: space-between; align-items: center; }
+  .editor h3 .tag { font-size: .7rem; color: var(--muted); font-weight: 400; }
+  textarea.code {
+    width: 100%; min-height: 340px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .8rem; line-height: 1.45;
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    background: #fbfbfd; color: var(--ink); resize: vertical; white-space: pre;
+  }
+  textarea.code:focus { outline: 2px solid var(--wbs); outline-offset: 1px; border-color: var(--wbs); }
+
+  .actions { display: flex; gap: 10px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent;
+  }
+  button.primary { background: var(--wbs); color: #fff; }
+  button.primary:hover { background: var(--wbs-dark); }
+  button.ghost { background: #fff; color: var(--wbs); border-color: var(--line); }
+  button.ghost:hover { border-color: var(--wbs); }
+  button:focus-visible { outline: 2px solid var(--wbs); outline-offset: 2px; }
+
+  #summary { margin-top: 12px; font-size: .85rem; }
+  #summary .empty { color: var(--muted); }
+  .report { background: var(--good-bg); border: 1px solid #c7e7d4; border-radius: 8px; padding: 12px 14px; }
+  .report strong { color: var(--good); }
+  .report ul { margin: 8px 0 0; padding-left: 18px; }
+  .report li { margin: 2px 0; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .85rem;
+    opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>HTML Tidy</h1>
+  <p>Strips Word/Office paste junk from learning-content HTML — runs entirely in your browser, nothing is sent anywhere.</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Cleaning options">
+      <h2>What to clean</h2>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-word" checked>
+        <label for="opt-word">Word / Office paste spans
+          <span class="desc">Unwraps TextRun, NormalTextRun, SCXW…, BCX…, EOP, Selected. Keeps the text inside.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-invisible" checked>
+        <label for="opt-invisible">Invisible junk spans
+          <span class="desc">Deletes soft-hyphen blobs and empty markers (whitespace-only spans).</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-emptyspan" checked>
+        <label for="opt-emptyspan">Bare spans with no purpose
+          <span class="desc">Unwraps spans that carry no class, style, or recognised role.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-emptydiv" checked>
+        <label for="opt-emptydiv">Empty &amp; redundant divs
+          <span class="desc">Removes divs with no content; unwraps attribute-less divs that just wrap one child.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-strays" checked>
+        <label for="opt-strays">Stray &lt; and &gt; in text
+          <span class="desc">Removes rogue angle brackets glued to words (e.g. &gt;company). Leaves spaced maths like x &gt; y alone.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-whitespace">
+        <label for="opt-whitespace">Tidy whitespace
+          <span class="desc">Collapses runs of spaces and stray non-breaking spaces in text.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-images" checked>
+        <label for="opt-images">Centre images &amp; captions
+          <span class="desc">Centres the image inside its figure and centres the caption, so a long caption no longer shifts the image left.</span>
+        </label>
+      </div>
+
+      <details class="adv">
+        <summary>Advanced: class lists</summary>
+        <label for="protect">Protect spans/divs whose class matches (comma or newline separated)</label>
+        <textarea id="protect">fa, fa-, wbs-, mceTmpl, icon</textarea>
+        <label for="junk">Treat as junk spans (matched by substring)</label>
+        <textarea id="junk">TextRun, NormalTextRun, SCXW, BCX, EOP, Selected, SoftHyphenBlob, BlobObject, DragDrop, WACImageContainer, OutlineElement</textarea>
+      </details>
+    </aside>
+
+    <main>
+      <div class="editors">
+        <div class="editor">
+          <h3>Paste your HTML <span class="tag">input</span></h3>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the page HTML here…"></textarea>
+        </div>
+        <div class="editor">
+          <h3>Cleaned HTML <span class="tag">output</span></h3>
+          <textarea id="output" class="code" spellcheck="false" placeholder="Cleaned HTML appears here…" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="clean">Clean HTML</button>
+        <button class="ghost" id="copy">Copy cleaned HTML</button>
+        <button class="ghost" id="sample">Load sample</button>
+      </div>
+
+      <div id="summary"><span class="empty">A change summary will appear here after cleaning.</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var SOFT_HYPHEN = "\u00AD";
+
+  function parseList(text) {
+    return text.split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  // A span/div is protected if any of its classes contains a protected token,
+  // or it carries a non-empty inline style.
+  function isProtected(el, protectTokens) {
+    var style = (el.getAttribute("style") || "").trim();
+    if (style) return true;
+    var cls = el.getAttribute("class") || "";
+    if (!cls) return false;
+    return protectTokens.some(function (tok) { return cls.indexOf(tok) !== -1; });
+  }
+
+  function matchesJunk(el, junkTokens) {
+    var cls = el.getAttribute("class") || "";
+    if (!cls) return false;
+    return junkTokens.some(function (tok) { return cls.indexOf(tok) !== -1; });
+  }
+
+  // True when an element holds nothing but whitespace, &nbsp; or soft hyphens.
+  function isVisuallyEmpty(el) {
+    var t = (el.textContent || "").replace(/\u00A0/g, " ").replace(new RegExp(SOFT_HYPHEN, "g"), "");
+    return t.trim() === "" && el.querySelector("img, br, hr, svg") === null;
+  }
+
+  function unwrap(el) {
+    var parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  }
+
+  // Parse an inline style string into an ordered map of property -> value.
+  function parseStyle(str) {
+    var map = {};
+    (str || "").split(";").forEach(function (decl) {
+      var i = decl.indexOf(":");
+      if (i === -1) return;
+      var prop = decl.slice(0, i).trim().toLowerCase();
+      var val = decl.slice(i + 1).trim();
+      if (prop) map[prop] = val;
+    });
+    return map;
+  }
+  function serializeStyle(map) {
+    return Object.keys(map).map(function (k) { return k + ": " + map[k] + ";"; }).join(" ");
+  }
+  // Add declarations only where the property is absent. Returns true if anything changed.
+  function ensureStyle(el, props) {
+    var map = parseStyle(el.getAttribute("style"));
+    var changed = false;
+    Object.keys(props).forEach(function (p) {
+      if (!(p in map)) { map[p] = props[p]; changed = true; }
+    });
+    if (changed) el.setAttribute("style", serializeStyle(map));
+    return changed;
+  }
+
+  function clean(html, opts) {
+    var counts = { word: 0, invisible: 0, emptyspan: 0, emptydiv: 0, strays: 0, images: 0 };
+
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    var body = doc.body;
+
+    // --- SPANS ---
+    // Iterate over a static snapshot because we mutate the tree as we go.
+    var spans = Array.prototype.slice.call(body.querySelectorAll("span"));
+    spans.forEach(function (span) {
+      if (!span.parentNode) return;                 // already removed via an ancestor
+      if (isProtected(span, opts.protect)) return;  // wbs / fa / styled — leave alone
+
+      var junk = matchesJunk(span, opts.junk);
+      var bare = !(span.getAttribute("class") || "").trim() && !(span.getAttribute("style") || "").trim();
+
+      if (junk && opts.invisible && isVisuallyEmpty(span)) {
+        span.parentNode.removeChild(span);          // soft-hyphen blobs, EOP markers
+        counts.invisible++;
+        return;
+      }
+      if (junk && opts.word) { unwrap(span); counts.word++; return; }
+      if (bare && opts.emptyspan) {
+        if (opts.invisible && isVisuallyEmpty(span)) { span.parentNode.removeChild(span); counts.invisible++; }
+        else { unwrap(span); counts.emptyspan++; }
+        return;
+      }
+    });
+
+    // --- DIVS ---
+    if (opts.emptydiv) {
+      var divs = Array.prototype.slice.call(body.querySelectorAll("div"));
+      // Process deepest-first so unwrapping inner divs settles before outer ones.
+      divs.reverse().forEach(function (div) {
+        if (!div.parentNode) return;
+        if (isProtected(div, opts.protect)) return;
+        var hasAttrs = div.attributes.length > 0;
+        if (!hasAttrs && isVisuallyEmpty(div)) { div.parentNode.removeChild(div); counts.emptydiv++; return; }
+        // Attribute-less wrapper around a single element node → unwrap.
+        if (!hasAttrs) {
+          var elementChildren = Array.prototype.filter.call(div.childNodes, function (n) {
+            return n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim() !== "");
+          });
+          if (elementChildren.length <= 1) { unwrap(div); counts.emptydiv++; }
+        }
+      });
+    }
+
+    // --- STRAY ANGLE BRACKETS IN TEXT ---
+    if (opts.strays) {
+      var walker = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+      var textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach(function (node) {
+        var before = node.nodeValue;
+        // Remove < or > only when glued to a word/number/currency/punctuation (no following space).
+        var after = before.replace(/[<>]+(?=[A-Za-z0-9$£€.,;:])/g, "");
+        if (after !== before) { counts.strays += (before.length - after.length); node.nodeValue = after; }
+      });
+    }
+
+    // --- WHITESPACE ---
+    if (opts.whitespace) {
+      var w2 = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+      var tn2 = [];
+      while (w2.nextNode()) tn2.push(w2.currentNode);
+      tn2.forEach(function (node) {
+        node.nodeValue = node.nodeValue.replace(/\u00A0{2,}/g, "\u00A0").replace(/[ \t]{2,}/g, " ");
+      });
+    }
+
+    // --- IMAGE BOXES: centre image + caption (matches the known-good template) ---
+    if (opts.images) {
+      var figures = Array.prototype.slice.call(body.querySelectorAll("figure"));
+      figures.forEach(function (fig) {
+        var img = fig.querySelector("img");
+        var cap = fig.querySelector("figcaption");
+        var touched = false;
+
+        if (img) {
+          // Centre the image within the figure regardless of caption width.
+          if (ensureStyle(img, {
+            "display": "block",
+            "margin-left": "auto",
+            "margin-right": "auto"
+          })) touched = true;
+        }
+
+        if (cap) {
+          if (cap.hasAttribute("spellcheck")) { cap.removeAttribute("spellcheck"); touched = true; }
+
+          // Already centred? A single wrapping span carrying text-align means leave it.
+          var elemChildren = Array.prototype.filter.call(cap.children, function (n) { return n.nodeType === 1; });
+          var alreadyWrapped = elemChildren.length === 1 &&
+            elemChildren[0].tagName === "SPAN" &&
+            /text-align/i.test(elemChildren[0].getAttribute("style") || "");
+
+          var hasContent = (cap.textContent || "").trim() !== "" || cap.querySelector("img, br");
+          if (!alreadyWrapped && hasContent) {
+            var span = doc.createElement("span");
+            span.setAttribute("style", "text-align: center;");
+            while (cap.firstChild) span.appendChild(cap.firstChild);
+            cap.appendChild(span);
+            touched = true;
+          }
+        }
+
+        if (touched) counts.images++;
+      });
+    }
+
+    return { html: body.innerHTML, counts: counts };
+  }
+
+  function pretty(html) {
+    // Light, safe indentation for readability — purely cosmetic.
+    var formatted = html.replace(/>\s*</g, ">\n<");
+    var pad = 0, lines = formatted.split("\n");
+    var voids = /^<(area|br|col|hr|img|input|link|meta|source|wbr)\b/i;
+    return lines.map(function (line) {
+      line = line.trim();
+      if (!line) return "";
+      if (/^<\//.test(line)) pad = Math.max(pad - 1, 0);
+      var out = "  ".repeat(pad) + line;
+      if (/^<[^!/]/.test(line) && !/\/>$/.test(line) && !voids.test(line) && !/<\/[a-z0-9]+>$/i.test(line)) pad++;
+      return out;
+    }).filter(function (l) { return l !== ""; }).join("\n");
+  }
+
+  function showToast(msg) {
+    var t = $("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  function renderSummary(counts) {
+    var rows = [
+      ["Word / Office spans unwrapped", counts.word],
+      ["Invisible junk spans removed", counts.invisible],
+      ["Bare spans unwrapped", counts.emptyspan],
+      ["Divs removed or unwrapped", counts.emptydiv],
+      ["Stray angle brackets removed", counts.strays],
+      ["Image boxes centred", counts.images]
+    ].filter(function (r) { return r[1] > 0; });
+
+    var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0);
+    if (total === 0) {
+      $("summary").innerHTML = '<div class="report"><strong>Nothing to change.</strong> No junk matched your selected options.</div>';
+      return;
+    }
+    var lis = rows.map(function (r) { return "<li>" + r[0] + ": <strong>" + r[1] + "</strong></li>"; }).join("");
+    $("summary").innerHTML = '<div class="report"><strong>Done.</strong> ' + total +
+      ' change' + (total === 1 ? "" : "s") + ' made.<ul>' + lis + '</ul></div>';
+  }
+
+  $("clean").addEventListener("click", function () {
+    var src = $("input").value;
+    if (!src.trim()) { showToast("Paste some HTML first"); return; }
+    var opts = {
+      word: $("opt-word").checked,
+      invisible: $("opt-invisible").checked,
+      emptyspan: $("opt-emptyspan").checked,
+      emptydiv: $("opt-emptydiv").checked,
+      strays: $("opt-strays").checked,
+      whitespace: $("opt-whitespace").checked,
+      images: $("opt-images").checked,
+      protect: parseList($("protect").value),
+      junk: parseList($("junk").value)
+    };
+    try {
+      var result = clean(src, opts);
+      $("output").value = pretty(result.html);
+      renderSummary(result.counts);
+    } catch (err) {
+      $("summary").innerHTML = '<div class="report" style="background:#fbeaea;border-color:#e6bcbc">' +
+        '<strong style="color:#a11">Couldn\'t parse that.</strong> Check the input is HTML, then try again.</div>';
+    }
+  });
+
+  $("copy").addEventListener("click", function () {
+    var out = $("output").value;
+    if (!out) { showToast("Clean something first"); return; }
+    navigator.clipboard.writeText(out).then(
+      function () { showToast("Cleaned HTML copied"); },
+      function () { $("output").select(); document.execCommand("copy"); showToast("Cleaned HTML copied"); }
+    );
+  });
+
+  $("sample").addEventListener("click", function () {
+    $("input").value =
+'<h3>The tax shield</h3>\n' +
+'<p>The first advantage is the tax deductibility of interest.</span> If you r</span>ecall the structure</span></p>\n' +
+'<div class="mceTmpl wbs-lu-comp-example" style="background-color: rgb(255,243,226);">\n' +
+'<div class="icon"><span class="wbs-lu-activity-ico fa fa-cube">&nbsp;</span><strong>Example 4.2.1</strong></div>\n' +
+'<p>>A</span> >company paying $1</span> <span class="TextRun SCXW1 BCX8"><span class="NormalTextRun SCXW1 BCX8">billion</span></span> in interest<span class="SoftHyphenBlob BlobObject SCXW1 BCX8">\u00AD</span>.<span class="EOP SCXW1 BCX8">&nbsp;</span></p>\n' +
+'</div>\n' +
+'<p><span style="background-color:#ffff00">This highlight must survive.</span> So must x > y as maths.</p>';
+    showToast("Sample loaded — now click Clean HTML");
+  });
+})();
+</script>
+</body>
+</html>
