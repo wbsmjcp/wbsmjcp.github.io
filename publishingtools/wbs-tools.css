@@ -1,0 +1,145 @@
+/* ============================================================================
+   WBS Learning-Content Tools — shared stylesheet
+   ----------------------------------------------------------------------------
+   Link this from any tool that lives in the SAME FOLDER:
+
+       <link rel="stylesheet" href="wbs-tools.css">
+
+   Change a colour or radius once here and every linked tool updates.
+
+   Per-tool tweaks: add a small <style> block AFTER the link and override what
+   you need (e.g. a wider side panel). To hand someone a standalone single
+   file, paste this file's contents into a <style> block in place of the link.
+   ========================================================================== */
+
+/* --- Design tokens ------------------------------------------------------- */
+:root {
+  --wbs: #00A9E0;          /* primary accent (WBS blue) */
+  --wbs-dark: #0054A4;     /* darker accent for hover / emphasis */
+  --wbs-tint: #e6f6fc;     /* light accent wash for selected states */
+  --ink: #1c1c20;          /* body text */
+  --muted: #6b6b76;        /* secondary text */
+  --line: #e3e1e8;         /* borders / dividers */
+  --panel: #ffffff;        /* card surfaces */
+  --bg: #f6f5f8;           /* page background */
+  --good: #1f7a4d;         /* success text */
+  --good-bg: #e9f6ef;      /* success surface */
+  --good-border: #c7e7d4;  /* success border */
+  --warn: #9a5b00;         /* warning text */
+  --radius: 10px;
+  --font: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+code {
+  font-family: var(--mono);
+  font-size: .85em;
+  background: #f0eff3;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+/* --- Header & page shell ------------------------------------------------- */
+header { background: var(--wbs); color: #fff; padding: 18px 24px; }
+header h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: .2px; }
+header p { margin: 4px 0 0; font-size: .85rem; opacity: .85; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 60px; }
+
+/* --- Two-column layout (side panel + main) ------------------------------- */
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+/* --- Panel / card -------------------------------------------------------- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.panel h2 {
+  margin: 0 0 12px; font-size: .78rem; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); font-weight: 700;
+}
+.panel h2:not(:first-child) { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+/* --- Checkbox option rows ------------------------------------------------ */
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.opt:last-child { border-bottom: none; }
+.opt input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--wbs); flex: none; }
+.opt label { font-size: .9rem; cursor: pointer; }
+.opt .desc { display: block; font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+/* --- Labelled form fields ------------------------------------------------ */
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 4px; }
+.field .hint { font-size: .75rem; color: var(--muted); margin: 0 0 6px; }
+.field input[type=text], .field textarea {
+  width: 100%; font: inherit; font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+}
+.field input:focus, .field textarea:focus { outline: 2px solid var(--wbs); outline-offset: 1px; border-color: var(--wbs); }
+.field textarea { resize: vertical; min-height: 52px; }
+
+/* --- Segmented mode toggle (radio buttons styled as cards) --------------- */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modes label {
+  display: block; text-align: center; font-size: .82rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 6px; background: #fff;
+}
+.modes input { position: absolute; opacity: 0; pointer-events: none; }
+.modes input:checked + label { border-color: var(--wbs); background: var(--wbs-tint); color: var(--wbs-dark); box-shadow: inset 0 0 0 1px var(--wbs); }
+.modes label small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
+
+/* --- Advanced disclosure ------------------------------------------------- */
+details.adv { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+details.adv summary { font-size: .8rem; color: var(--wbs); cursor: pointer; font-weight: 600; }
+details.adv label { display: block; font-size: .75rem; color: var(--muted); margin: 10px 0 4px; }
+details.adv textarea {
+  width: 100%; min-height: 80px; font-family: var(--mono);
+  font-size: .75rem; border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical;
+}
+
+/* --- Input / output editor columns --------------------------------------- */
+.editors { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .editors { grid-template-columns: 1fr; } }
+.editor h3 { margin: 0 0 6px; font-size: .85rem; display: flex; justify-content: space-between; align-items: center; }
+.editor h3 .tag { font-size: .7rem; color: var(--muted); font-weight: 400; }
+textarea.code {
+  width: 100%; min-height: 340px;
+  font-family: var(--mono); font-size: .8rem; line-height: 1.5;
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+  background: #fbfbfd; color: var(--ink); resize: vertical;
+}
+textarea.code:focus { outline: 2px solid var(--wbs); outline-offset: 1px; border-color: var(--wbs); }
+
+/* --- Actions & buttons --------------------------------------------------- */
+.actions { display: flex; gap: 10px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; }
+button.primary { background: var(--wbs); color: #fff; }
+button.primary:hover { background: var(--wbs-dark); }
+button.ghost { background: #fff; color: var(--wbs); border-color: var(--line); }
+button.ghost:hover { border-color: var(--wbs); }
+button.small { padding: 6px 12px; font-size: .8rem; }
+button:focus-visible { outline: 2px solid var(--wbs); outline-offset: 2px; }
+
+/* --- Result summary / report -------------------------------------------- */
+#summary { margin-top: 12px; font-size: .85rem; }
+#summary .empty { color: var(--muted); }
+.report { background: var(--good-bg); border: 1px solid var(--good-border); border-radius: 8px; padding: 12px 14px; }
+.report strong { color: var(--good); }
+.report ul { margin: 8px 0 0; padding-left: 18px; }
+.report li { margin: 2px 0; }
+.report .chips { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.report .chip { background: #fff; border: 1px solid var(--good-border); border-radius: 20px; padding: 2px 10px; font-size: .78rem; }
+
+/* --- Toast notification -------------------------------------------------- */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .85rem;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.toast.show { opacity: 1; }
