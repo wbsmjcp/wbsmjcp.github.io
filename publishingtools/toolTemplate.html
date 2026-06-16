@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Tool — learning-content tools</title>
+
+<!-- Shared theme. Keep wbs-tools.css in the SAME FOLDER as this file. -->
+<link rel="stylesheet" href="wbs-tools.css">
+
+<!-- Per-tool tweaks only (optional). Anything here overrides the shared theme. -->
+<style>
+  /* e.g. .layout { grid-template-columns: 300px 1fr; } */
+</style>
+</head>
+<body>
+<header>
+  <h1>New Tool</h1>
+  <p>One-line description — runs entirely in your browser, nothing is sent anywhere.</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Options">
+      <h2>Options</h2>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-example" checked>
+        <label for="opt-example">An example option
+          <span class="desc">Describe what this toggle does.</span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="some-field">A text field</label>
+        <p class="hint">Helper text for the field.</p>
+        <input type="text" id="some-field" placeholder="Type here…">
+      </div>
+    </aside>
+
+    <main>
+      <div class="editors">
+        <div class="editor">
+          <h3>Input <span class="tag">paste here</span></h3>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste here…"></textarea>
+        </div>
+        <div class="editor">
+          <h3>Output <span class="tag">result</span></h3>
+          <textarea id="output" class="code" spellcheck="false" placeholder="Result appears here…" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="run">Run</button>
+        <button class="ghost" id="copy">Copy output</button>
+      </div>
+
+      <div id="summary"><span class="empty">A summary will appear here.</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function showToast(msg) {
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  $("run").addEventListener("click", function () {
+    var src = $("input").value;
+    if (!src.trim()) { showToast("Add some input first"); return; }
+    // TODO: transform `src` and write the result to #output.
+    $("output").value = src;
+    $("summary").innerHTML = '<div class="report"><strong>Done.</strong></div>';
+  });
+
+  $("copy").addEventListener("click", function () {
+    var out = $("output").value;
+    if (!out) { showToast("Run something first"); return; }
+    navigator.clipboard.writeText(out).then(
+      function () { showToast("Copied"); },
+      function () { $("output").select(); document.execCommand("copy"); showToast("Copied"); }
+    );
+  });
+})();
+</script>
+</body>
+</html>
