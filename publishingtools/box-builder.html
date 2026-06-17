@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Box Builder — learning-content tools</title>
+
+<!-- Shared theme (keep wbs-tools.css in the same folder) -->
+<link rel="stylesheet" href="wbs-tools.css">
+<!-- Font Awesome 4 for icon previews -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<style>
+  /* Tool-specific bits not in the shared theme */
+  .swatch { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .swatch input[type=color] { width: 38px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+  .swatch select { font: inherit; font-size: .82rem; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .inline-check { display: flex; gap: 8px; align-items: center; font-size: .82rem; font-weight: 600; }
+  .inline-check input { width: 15px; height: 15px; accent-color: var(--wbs); }
+
+  .icon-current { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); margin: 8px 0 6px; }
+  .icon-current .fa { font-size: 1.1rem; color: var(--ink); width: 20px; text-align: center; }
+  .icon-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-height: 190px; overflow-y: auto;
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: #fbfbfd; }
+  .icon-btn { border: 1px solid transparent; background: none; border-radius: 6px; padding: 8px 0; cursor: pointer; font-size: 1rem; color: var(--ink); }
+  .icon-btn:hover { background: var(--wbs-tint); }
+  .icon-btn.sel { border-color: var(--wbs); background: var(--wbs-tint); box-shadow: inset 0 0 0 1px var(--wbs); }
+
+  /* Faithful preview: an isolated iframe that loads the real platform CSS */
+  #preview { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-height: 140px; display: block; }
+  .caveat { font-size: .75rem; color: var(--muted); margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Box Builder</h1>
+  <p>Generate a ready-to-paste WBS box. Pick a template or build your own — runs in your browser.</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Box options">
+      <h2>Mode</h2>
+      <div class="modes">
+        <input type="radio" name="mode" id="mode-template" value="template" checked>
+        <label for="mode-template">From template<small>pick a preset box</small></label>
+        <input type="radio" name="mode" id="mode-new" value="new">
+        <label for="mode-new">Create new<small>your colours &amp; icon</small></label>
+      </div>
+
+      <!-- TEMPLATE MODE -->
+      <div id="tpl-opts">
+        <h2>Box type</h2>
+        <div class="field">
+          <select id="tpl-select" style="width:100%; font:inherit; font-size:.85rem; padding:8px 10px; border:1px solid var(--line); border-radius:6px;"></select>
+        </div>
+        <div class="field">
+          <label for="tpl-ref">Reference number</label>
+          <p class="hint">Replaces the placeholder (e.g. 4.2.1). Optional.</p>
+          <input type="text" id="tpl-ref" placeholder="leave blank for x.x.x">
+        </div>
+        <div class="field">
+          <label for="tpl-title">Title</label>
+          <p class="hint">Optional — falls back to the template placeholder.</p>
+          <input type="text" id="tpl-title" placeholder="optional title">
+        </div>
+      </div>
+
+      <!-- CREATE-NEW MODE -->
+      <div id="new-opts" style="display:none">
+        <h2>Appearance</h2>
+        <div class="field">
+          <label class="inline-check"><input type="checkbox" id="new-bg-on" checked> Background colour</label>
+          <div class="swatch"><input type="color" id="new-bg" value="#fff3e2"><span class="hint">box fill</span></div>
+        </div>
+        <div class="field">
+          <label class="inline-check"><input type="checkbox" id="new-border-on"> Side border</label>
+          <div class="swatch">
+            <select id="new-border-side"><option value="left">left</option><option value="right">right</option></select>
+            <input type="color" id="new-border-color" value="#208468">
+          </div>
+        </div>
+
+        <h2>Icon</h2>
+        <div class="icon-current">Selected: <span class="fa" id="icon-preview"></span> <code id="icon-name"></code></div>
+        <div class="field" style="margin-bottom:8px">
+          <input type="text" id="icon-search" placeholder="search icons (e.g. leaf, chart)…">
+        </div>
+        <div class="icon-grid" id="icon-grid"></div>
+
+        <h2>Label</h2>
+        <div class="field">
+          <label for="new-label">Label text</label>
+          <p class="hint">The bold lead-in, e.g. &ldquo;Key idea:&rdquo;. Optional.</p>
+          <input type="text" id="new-label" placeholder="e.g. Key idea:">
+        </div>
+        <div class="field">
+          <label for="new-title">Title</label>
+          <input type="text" id="new-title" placeholder="optional title">
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="editors">
+        <div class="editor">
+          <h3>Your text <span class="tag">paste here</span></h3>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the box text here. Blank lines start new paragraphs."></textarea>
+        </div>
+        <div class="editor">
+          <h3>HTML to paste into TinyMCE <span class="tag">output</span></h3>
+          <textarea id="output" class="code" spellcheck="false" readonly></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="copy">Copy HTML</button>
+        <span id="detect-note" class="hint" style="margin-left:4px"></span>
+      </div>
+
+      <h3 style="font-size:.85rem; margin:8px 0 6px;">Preview</h3>
+      <iframe id="preview" title="Box preview"></iframe>
+      <p class="caveat">Faithful preview — loads the platform stylesheet (<code>wbs-platform.css</code>) in an isolated frame, so it matches the published page. Re-copy that file from the site when the styling changes. <br> Please note the review will look slightly different to how it does on my.wbs</p>
+      
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="wbs-box-templates.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var B = window.WBSBoxes;
+  var selectedIcon = "fa fa-cube";
+  var userPicked = false;
+
+  function showToast(msg) {
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1700);
+  }
+  function mode() { return $("mode-template").checked ? "template" : "new"; }
+
+  // --- Populate template dropdown (grouped by family) ---
+  (function fillSelect() {
+    var groups = { comp: "Comp-example boxes", activity: "Activity boxes" };
+    var sel = $("tpl-select");
+    Object.keys(groups).forEach(function (fam) {
+      var og = document.createElement("optgroup");
+      og.label = groups[fam];
+      B.templates.filter(function (t) { return t.family === fam; }).forEach(function (t) {
+        var o = document.createElement("option");
+        o.value = t.id; o.textContent = t.name;
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    sel.value = "example";
+  })();
+
+  // --- Build the icon picker grid ---
+  function renderIconGrid(filter) {
+    var grid = $("icon-grid");
+    grid.innerHTML = "";
+    var f = (filter || "").toLowerCase();
+    B.icons.filter(function (n) { return !f || n.indexOf(f) !== -1; }).forEach(function (name) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "icon-btn" + ("fa fa-" + name === selectedIcon ? " sel" : "");
+      b.title = name;
+      b.innerHTML = '<span class="fa fa-' + name + '"></span>';
+      b.addEventListener("click", function () {
+        selectedIcon = "fa fa-" + name;
+        updateIconLabel();
+        Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove("sel"); });
+        b.classList.add("sel");
+        regen();
+      });
+      grid.appendChild(b);
+    });
+  }
+  function updateIconLabel() {
+    $("icon-preview").className = "fa " + selectedIcon.replace(/^fa /, "");
+    $("icon-name").textContent = selectedIcon;
+  }
+
+  // --- Generate output + preview ---
+  function currentHtml() {
+    var content = $("input").value;
+    if (mode() === "template") {
+      return B.build($("tpl-select").value, content, {
+        title: $("tpl-title").value.trim(),
+        reference: $("tpl-ref").value.trim()
+      });
+    }
+    var opts = { content: content, icon: selectedIcon, prefix: $("new-label").value.trim() };
+    var ttl = $("new-title").value.trim();
+    if (ttl) opts.title = ttl;
+    if ($("new-bg-on").checked) opts.bg = B.hexToRgb($("new-bg").value);
+    if ($("new-border-on").checked) opts.border = { side: $("new-border-side").value, color: B.hexToRgb($("new-border-color").value) };
+    return B.buildComp(opts);
+  }
+  function regen() {
+    var html = currentHtml();
+    $("output").value = html;
+    $("preview").srcdoc = previewDoc(html);
+  }
+
+  // Full document for the preview iframe: real platform CSS + fonts + FA4.
+  // Relative hrefs resolve against this page's location (fine on GitHub Pages).
+  function previewDoc(boxHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700%7COpen+Sans+Condensed:300,700">' +
+      '<link rel="stylesheet" href="wbs-platform.css">' +
+      '<style>html,body{margin:0}body{padding:24px;background:#fff;font-family:"Open Sans",Helvetica,Arial,sans-serif}</style>' +
+      '</head><body>' + boxHtml + '</body></html>';
+  }
+
+  // --- Auto-detect template from pasted text ---
+  function autoDetect() {
+    if (mode() !== "template" || userPicked) return;
+    var id = B.detect($("input").value);
+    if (id && id !== $("tpl-select").value) {
+      $("tpl-select").value = id;
+      var name = $("tpl-select").options[$("tpl-select").selectedIndex].text;
+      $("detect-note").textContent = "Auto-detected: " + name;
+    }
+  }
+
+  // --- Mode switching ---
+  function syncMode() {
+    var t = mode() === "template";
+    $("tpl-opts").style.display = t ? "" : "none";
+    $("new-opts").style.display = t ? "none" : "";
+    $("detect-note").textContent = "";
+    regen();
+  }
+  $("mode-template").addEventListener("change", syncMode);
+  $("mode-new").addEventListener("change", syncMode);
+
+  // --- Wire inputs ---
+  $("input").addEventListener("input", function () { autoDetect(); regen(); });
+  $("tpl-select").addEventListener("change", function () { userPicked = true; $("detect-note").textContent = ""; regen(); });
+  ["tpl-title", "tpl-ref", "new-label", "new-title"].forEach(function (id) {
+    $(id).addEventListener("input", regen);
+  });
+  ["new-bg-on", "new-bg", "new-border-on", "new-border-side", "new-border-color"].forEach(function (id) {
+    $(id).addEventListener("input", regen);
+  });
+  $("icon-search").addEventListener("input", function () { renderIconGrid(this.value); });
+
+  $("copy").addEventListener("click", function () {
+    var out = $("output").value;
+    if (!out) { showToast("Nothing to copy yet"); return; }
+    navigator.clipboard.writeText(out).then(
+      function () { showToast("HTML copied"); },
+      function () { $("output").select(); document.execCommand("copy"); showToast("HTML copied"); }
+    );
+  });
+
+  // Resize the preview iframe to fit its content each time it reloads.
+  $("preview").addEventListener("load", function () {
+    try {
+      var doc = this.contentDocument;
+      var h = doc && doc.body ? doc.documentElement.scrollHeight : 0;
+      if (h) this.style.height = (h + 10) + "px";
+    } catch (e) { /* ignore */ }
+  });
+
+  // --- Init ---
+  renderIconGrid("");
+  updateIconLabel();
+  regen();
+})();
+</script>
+</body>
+</html>

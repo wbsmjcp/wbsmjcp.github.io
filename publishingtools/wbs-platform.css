@@ -1,0 +1,104 @@
+/* ============================================================================
+   WBS platform styles — reconstructed from the live site's computed styles.
+   Used ONLY inside the Box Builder preview iframe, so the preview matches the
+   published page. It never touches the builder's own interface.
+
+   To refresh: re-copy the relevant rules from the site and update here. The
+   activity-box rules below are reconstructed from devtools computed values;
+   you can paste comp-example / mceTmpl rules into the marked section too.
+   ========================================================================== */
+
+/* --- Activity box: outer container -------------------------------------- */
+.wbs-lu-activity {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  color: rgb(51, 51, 51);
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 22px;
+  word-break: break-word;
+  border: 0.555556px dashed rgb(221, 221, 221);
+  margin: 42px 21px 28px 15px;
+}
+
+/* --- Label tab (protrudes top-left) ------------------------------------- */
+.wbs-lu-activity-label {
+  position: absolute;
+  top: -22px;
+  left: -22px;
+  display: block;
+  box-sizing: border-box;
+  background-color: rgb(31, 132, 104);   /* default tab colour; inline style overrides per box */
+  color: #fff;
+  border: 5px solid #fff;
+  border-right-width: 7.77778px;
+  border-bottom-width: 10px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* dark chip behind the label's type text */
+.wbs-lu-activity-label .text {
+  display: inline-block;
+  box-sizing: border-box;
+  background-color: rgb(56, 64, 71);
+  color: #fff;
+  padding: 4px 8px 4px 12px;
+  font-size: 14px;
+  line-height: 22px;
+}
+.wbs-lu-activity-label .text p { margin: 0; }
+
+/* icon sits on the coloured tab, next to the chip */
+.wbs-lu-activity-label .icon {
+  display: inline-block;
+  box-sizing: border-box;
+  color: #fff;
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* --- Inner content area ------------------------------------------------- */
+.wbs-lu-activityinner {
+  display: block;
+  box-sizing: border-box;
+  padding: 30px 0 35px;
+  text-align: center;
+  color: rgb(51, 51, 51);
+}
+
+/* --- Number tab (protrudes bottom-right) -------------------------------- */
+.wbs-lu-activity-number {
+  position: absolute;
+  bottom: -18px;
+  right: -22px;
+  display: block;
+  box-sizing: border-box;
+  background-color: rgb(31, 132, 104);   /* default; inline style overrides per box */
+  color: #fff;
+  border: 5px solid #fff;
+  font-family: "Open Sans Condensed", "Open Sans", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 22px;
+  padding: 2px 8px;
+}
+
+/* ============================================================================
+   Comp-example / mceTmpl boxes
+   ----------------------------------------------------------------------------
+   Not yet copied from the site. Paste the real .wbs-lu-comp-example / .mceTmpl
+   rules here to make those previews faithful too. Until then, the light
+   defaults below just keep them readable.
+   ========================================================================== */
+.wbs-lu-comp-example,
+.mceTmpl {
+  box-sizing: border-box;
+  padding: 14px 18px;
+  margin: 12px 0;
+  border-radius: 4px;
+}
+.wbs-lu-comp-example .icon,
+.mceTmpl .icon { font-weight: 700; margin-bottom: 8px; }
+.wbs-lu-activity-ico { margin-right: 6px; }
