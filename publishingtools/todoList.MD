@@ -1,7 +1,8 @@
 # Ideas
-* Box creator - drop down list, specifies what type of box is wanted, and if it should use the default stylisation
+* ~Box creator - drop down list, specifies what type of box is wanted, and if it should use the default stylisation~
 * LaTeX fixer - Is this needed? Is there something online that can do this better already?
 * Image/Table to text - Rather than always asking AI to fix this and wasting credits/tokens/water etc.
+* Reference list sorter - Something that allows pasting a reference list in and that correctly formats the html and orders the pasted list. (Could call it Hillbert - because of Johna Hill and Dr Hibbert from the Simpsons)
 
 ---
 
