@@ -9,7 +9,7 @@ This is a place where I am going to stick tools for people in our team to use, b
 
 ## Are the tools any good?
 
-They might be a bit wonky, I'll happily admit I'm not a coder by nature, but I can navigate code and understand the principals. But I also have access to AI, so if it is broken... it's Claude's fault.
+They might be a bit wonky. I'll happily admit I'm not a coder by nature, but I can navigate code and understand the principles. But I also have access to AI, so if it is broken... It's Claude's fault.
 
 ---
 
@@ -17,3 +17,11 @@ They might be a bit wonky, I'll happily admit I'm not a coder by nature, but I c
 
 * [Publishing Tools](publishingtools)
 * Others coming soon
+
+# Others in TLE
+
+## Dan
+
+* [Dan's GitHub](https://github.com/ptsnac)
+* [Kaltura Background Generator](https://ptsnac.github.io/background-generator/)
+  
