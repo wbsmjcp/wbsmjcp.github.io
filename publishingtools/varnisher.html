@@ -117,7 +117,7 @@
 </head>
 <body>
 <header>
-  <h1>Varnisher - A HTML cleaner</h1>
+  <h1>Varnisher - A HTML cleaner - Version 1.2</h1>
   <p>Strips Word/Office paste junk from learning-content HTML — runs entirely in your browser, nothing is sent anywhere.</p>
 </header>
 
@@ -172,6 +172,13 @@
         <input type="checkbox" id="opt-images" checked>
         <label for="opt-images">Centre images &amp; captions
           <span class="desc">Centres the image inside its figure and centres the caption, so a long caption no longer shifts the image left.</span>
+        </label>
+      </div>
+
+      <div class="opt">
+        <input type="checkbox" id="opt-tables" checked>
+        <label for="opt-tables">Fix WBS content tables
+          <span class="desc">Only tables classed <code>table table-bordered table-striped</code>: adds <code>wbs-lu-table-type1</code> and sets the width to 50.0%. Leaves all other tables alone.</span>
         </label>
       </div>
 
@@ -236,10 +243,15 @@
     return junkTokens.some(function (tok) { return cls.indexOf(tok) !== -1; });
   }
 
-  // True when an element holds nothing but whitespace, &nbsp; or soft hyphens.
+  // Elements that carry meaning even with no text — never treat these as empty.
+  var MEANINGFUL_SEL = "img, br, hr, svg, iframe, video, audio, embed, object, source, " +
+    "picture, canvas, input, table, math, figure, map, area, track, param";
+
+  // True when an element holds nothing but whitespace, &nbsp; or soft hyphens
+  // AND contains no embedded/replaced content (images, iframes, video, etc.).
   function isVisuallyEmpty(el) {
     var t = (el.textContent || "").replace(/\u00A0/g, " ").replace(new RegExp(SOFT_HYPHEN, "g"), "");
-    return t.trim() === "" && el.querySelector("img, br, hr, svg") === null;
+    return t.trim() === "" && el.querySelector(MEANINGFUL_SEL) === null;
   }
 
   function unwrap(el) {
@@ -276,7 +288,7 @@
   }
 
   function clean(html, opts) {
-    var counts = { word: 0, invisible: 0, emptyspan: 0, emptydiv: 0, strays: 0, images: 0 };
+    var counts = { word: 0, invisible: 0, emptyspan: 0, emptydiv: 0, strays: 0, images: 0, tables: 0 };
 
     var doc = new DOMParser().parseFromString(html, "text/html");
     var body = doc.body;
@@ -386,6 +398,37 @@
       });
     }
 
+    // --- WBS CONTENT TABLES: normalise the bordered + striped table type ---
+    if (opts.tables) {
+      var tables = Array.prototype.slice.call(body.querySelectorAll("table"));
+      tables.forEach(function (table) {
+        var classList = (table.getAttribute("class") || "").split(/\s+/).filter(Boolean);
+        // Only act on the specific content-table signature; leave all other tables alone.
+        var isContentTable = ["table", "table-bordered", "table-striped"].every(function (c) {
+          return classList.indexOf(c) !== -1;
+        });
+        if (!isContentTable) return;
+
+        // Skip if it is already the finished type1 table at 50% width (idempotent).
+        var already = classList.indexOf("wbs-lu-table-type1") !== -1 &&
+          /width:\s*50(\.0+)?%/.test(table.getAttribute("style") || "");
+        if (already) return;
+
+        if (classList.indexOf("wbs-lu-table-type1") === -1) classList.push("wbs-lu-table-type1");
+        table.setAttribute("class", classList.join(" "));
+
+        // Rebuild the style as: width 50.0% first, then border-collapse, then anything else preserved.
+        var orig = parseStyle(table.getAttribute("style"));
+        var ordered = { "width": "50.0%", "border-collapse": orig["border-collapse"] || "collapse" };
+        Object.keys(orig).forEach(function (k) {
+          if (k !== "width" && k !== "border-collapse") ordered[k] = orig[k];
+        });
+        table.setAttribute("style", serializeStyle(ordered));
+
+        counts.tables++;
+      });
+    }
+
     return { html: body.innerHTML, counts: counts };
   }
 
@@ -417,7 +460,8 @@
       ["Bare spans unwrapped", counts.emptyspan],
       ["Divs removed or unwrapped", counts.emptydiv],
       ["Stray angle brackets removed", counts.strays],
-      ["Image boxes centred", counts.images]
+      ["Image boxes centred", counts.images],
+      ["WBS tables reformatted", counts.tables]
     ].filter(function (r) { return r[1] > 0; });
 
     var total = Object.keys(counts).reduce(function (a, k) { return a + counts[k]; }, 0);
@@ -441,6 +485,7 @@
       strays: $("opt-strays").checked,
       whitespace: $("opt-whitespace").checked,
       images: $("opt-images").checked,
+      tables: $("opt-tables").checked,
       protect: parseList($("protect").value),
       junk: parseList($("junk").value)
     };
