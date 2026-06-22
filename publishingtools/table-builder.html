@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Table Builder — learning-content tools</title>
+
+<link rel="stylesheet" href="wbs-tools.css">
+<style>
+  .modes.three { grid-template-columns: repeat(3, 1fr); }
+  #fmt-desc { font-size: .75rem; color: var(--muted); margin: 6px 0 0; }
+  .num { width: 76px; font: inherit; font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .row2 { display: flex; gap: 14px; flex-wrap: wrap; }
+  .upload-zone { border: 1.5px dashed var(--line); border-radius: 8px; padding: 22px; text-align: center; color: var(--muted); font-size: .85rem; }
+  .upload-zone strong { color: var(--ink); }
+  #file-status { font-size: .8rem; color: var(--good); margin-top: 8px; }
+  #preview { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-height: 140px; display: block; }
+  .caveat { font-size: .75rem; color: var(--muted); margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Table Builder</h1>
+  <p>Reformat a pasted table, build one from a spreadsheet, or start from a blank grid — then pick a style.</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Table options">
+      <h2>Source</h2>
+      <div class="modes three">
+        <input type="radio" name="mode" id="mode-paste" value="paste" checked>
+        <label for="mode-paste">Paste HTML<small>reformat</small></label>
+        <input type="radio" name="mode" id="mode-upload" value="upload">
+        <label for="mode-upload">Upload<small>CSV / Excel</small></label>
+        <input type="radio" name="mode" id="mode-blank" value="blank">
+        <label for="mode-blank">Blank<small>rows × cols</small></label>
+      </div>
+
+      <div id="blank-opts" style="display:none">
+        <h2>Grid</h2>
+        <div class="row2">
+          <div class="field" style="margin:0"><label for="b-rows">Rows</label><input class="num" type="number" id="b-rows" min="1" value="4"></div>
+          <div class="field" style="margin:0"><label for="b-cols">Columns</label><input class="num" type="number" id="b-cols" min="1" value="3"></div>
+        </div>
+      </div>
+
+      <h2>Style</h2>
+      <div class="field">
+        <select id="fmt" style="width:100%; font:inherit; font-size:.85rem; padding:8px 10px; border:1px solid var(--line); border-radius:6px;"></select>
+        <p id="fmt-desc"></p>
+      </div>
+      <div id="mods"></div>
+      <div class="field" id="width-field">
+        <label for="width">Table width (%)</label>
+        <p class="hint">Used by the centred styles. Blank = stylesheet default.</p>
+        <input class="num" type="text" id="width" placeholder="80.0">
+      </div>
+
+      <h2>Headers</h2>
+      <div class="field" style="margin-bottom:8px">
+        <label for="head-rows">Header rows (from top)</label>
+        <input class="num" type="number" id="head-rows" min="0" value="1">
+      </div>
+      <div class="opt" style="border:none; padding:0">
+        <input type="checkbox" id="first-col">
+        <label for="first-col">First column is a header
+          <span class="desc">Turns the left-most cell of each row into a header cell.</span>
+        </label>
+      </div>
+    </aside>
+
+    <main>
+      <div id="src-paste">
+        <div class="editor">
+          <h3>Paste table HTML <span class="tag">input</span></h3>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the table's HTML here…"></textarea>
+        </div>
+      </div>
+
+      <div id="src-upload" style="display:none">
+        <div class="upload-zone">
+          <p><strong>Upload a .csv or .xlsx/.xls file</strong></p>
+          <button class="ghost" id="upload-btn">Choose file</button>
+          <input type="file" id="file" accept=".csv,.xlsx,.xls,text/csv" style="display:none">
+          <p id="file-status"></p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="copy">Copy HTML</button>
+      </div>
+
+      <div class="editor">
+        <h3>HTML to paste into TinyMCE <span class="tag">output</span></h3>
+        <textarea id="output" class="code" spellcheck="false" readonly style="min-height:200px"></textarea>
+      </div>
+
+      <h3 style="font-size:.85rem; margin:12px 0 6px;">Preview</h3>
+      <iframe id="preview" title="Table preview"></iframe>
+      <p class="caveat">Faithful preview — loads <code>wbs-platform.css</code> in an isolated frame. Blue 1 is reconstructed from the site; Blue 2 / Grey are approximate until their CSS is confirmed.</p>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- SheetJS (Excel) from CDN; CSV is parsed natively -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="wbs-table-formats.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var T = window.WBSTables;
+  var uploadedRows = null;
+
+  function showToast(m) { var t = $("toast"); t.textContent = m; t.classList.add("show"); setTimeout(function () { t.classList.remove("show"); }, 1700); }
+  function mode() { return document.querySelector('input[name="mode"]:checked').value; }
+
+  // Populate format dropdown + modifier checkboxes
+  (function () {
+    var sel = $("fmt");
+    T.formats.forEach(function (f) { var o = document.createElement("option"); o.value = f.id; o.textContent = f.name; sel.appendChild(o); });
+    sel.value = "blue1";
+    var mods = $("mods");
+    T.modifiers.forEach(function (m) {
+      var row = document.createElement("div"); row.className = "opt";
+      row.innerHTML = '<input type="checkbox" id="mod-' + m.id + '"><label for="mod-' + m.id + '">' + m.name +
+        '<span class="desc">' + m.desc + "</span></label>";
+      mods.appendChild(row);
+    });
+  })();
+
+  function fmtObj() { return T.formats.filter(function (f) { return f.id === $("fmt").value; })[0]; }
+  function selectedMods() { return T.modifiers.filter(function (m) { return $("mod-" + m.id).checked; }).map(function (m) { return m.id; }); }
+  function currentOpts() {
+    return {
+      format: $("fmt").value,
+      modifiers: selectedMods(),
+      width: $("width").value.trim(),
+      headerRows: $("head-rows").value,
+      firstColHeader: $("first-col").checked
+    };
+  }
+
+  function emptyGrid(r, c) {
+    r = Math.max(1, parseInt(r, 10) || 1); c = Math.max(1, parseInt(c, 10) || 1);
+    var rows = []; for (var i = 0; i < r; i++) { var row = []; for (var j = 0; j < c; j++) row.push(""); rows.push(row); }
+    return rows;
+  }
+
+  function previewDoc(tableHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700%7COpen+Sans+Condensed:300,700">' +
+      '<link rel="stylesheet" href="wbs-platform.css">' +
+      '<style>html,body{margin:0}body{padding:24px;background:#fff;font-family:"Open Sans",Helvetica,Arial,sans-serif}</style>' +
+      "</head><body>" + tableHtml + "</body></html>";
+  }
+
+  function regen() {
+    var opts = currentOpts(), html = "";
+    if (mode() === "paste") {
+      if ($("input").value.trim()) { html = T.reformatTable($("input").value, opts); if (html === null) { html = ""; $("output").value = "(No <table> found in the pasted HTML.)"; $("preview").srcdoc = previewDoc(""); return; } }
+    } else if (mode() === "upload") {
+      if (uploadedRows) html = T.buildTable(uploadedRows, opts);
+    } else {
+      html = T.buildTable(emptyGrid($("b-rows").value, $("b-cols").value), opts);
+    }
+    $("output").value = html;
+    $("preview").srcdoc = previewDoc(html);
+  }
+
+  function syncMode() {
+    var m = mode();
+    $("src-paste").style.display = m === "paste" ? "" : "none";
+    $("src-upload").style.display = m === "upload" ? "" : "none";
+    $("blank-opts").style.display = m === "blank" ? "" : "none";
+    regen();
+  }
+  function syncFmt() {
+    var f = fmtObj();
+    $("fmt-desc").textContent = f.desc;
+    $("width-field").style.display = f.centered ? "" : "none";
+    if (f.centered && !$("width").value) $("width").value = (f.width || "").replace("%", "");
+    regen();
+  }
+
+  // File upload (CSV native, Excel via SheetJS)
+  $("upload-btn").addEventListener("click", function () { $("file").click(); });
+  $("file").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0]; if (!file) return;
+    var name = file.name.toLowerCase(), reader = new FileReader();
+    if (name.endsWith(".csv")) {
+      reader.onload = function () { uploadedRows = T.parseCSV(reader.result); afterUpload(file.name); };
+      reader.readAsText(file);
+    } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+      if (typeof XLSX === "undefined") { showToast("Excel reader unavailable (offline?)"); return; }
+      reader.onload = function () {
+        try {
+          var wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          uploadedRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
+          afterUpload(file.name + " — " + wb.SheetNames[0]);
+        } catch (err) { showToast("Couldn't read that spreadsheet"); }
+      };
+      reader.readAsArrayBuffer(file);
+    } else { showToast("Choose a .csv or .xlsx/.xls file"); }
+    e.target.value = "";
+  });
+  function afterUpload(label) {
+    var r = uploadedRows ? uploadedRows.length : 0, c = uploadedRows && uploadedRows[0] ? uploadedRows[0].length : 0;
+    $("file-status").textContent = "Loaded " + label + " — " + r + " rows × " + c + " columns";
+    regen();
+  }
+
+  // Wiring
+  document.querySelectorAll('input[name="mode"]').forEach(function (el) { el.addEventListener("change", syncMode); });
+  $("fmt").addEventListener("change", syncFmt);
+  $("input").addEventListener("input", regen);
+  ["width", "head-rows", "first-col", "b-rows", "b-cols"].forEach(function (id) { $(id).addEventListener("input", regen); });
+  T.modifiers.forEach(function (m) { $("mod-" + m.id).addEventListener("change", regen); });
+  $("preview").addEventListener("load", function () {
+    try { var d = this.contentDocument; var h = d && d.body ? d.documentElement.scrollHeight : 0; if (h) this.style.height = (h + 10) + "px"; } catch (e) {}
+  });
+  $("copy").addEventListener("click", function () {
+    var out = $("output").value; if (!out) { showToast("Nothing to copy yet"); return; }
+    navigator.clipboard.writeText(out).then(function () { showToast("HTML copied"); },
+      function () { $("output").select(); document.execCommand("copy"); showToast("HTML copied"); });
+  });
+
+  // Init
+  syncFmt();
+  syncMode();
+})();
+</script>
+</body>
+</html>
