@@ -25,3 +25,8 @@
 * Add upload file option for icons, with specifications for good image dimensions and properties.
 * Add auto-detect of pasted content (e.g. grab a title, select a box type, identify the box number if it exists)
 
+## Tafelburg - A Table creator
+* Fix previews
+* change boxes to be side by side and not stacked (reducing scroll) - should stack if screen width is significantly reduced
+* Tick option to allow header rows to be text centre aligned
+
