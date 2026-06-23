@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Table Builder — learning-content tools</title>
+<title>Tafelberg - Table Builder — learning-content tools</title>
 
 <link rel="stylesheet" href="wbs-tools.css">
 <style>
@@ -20,8 +20,9 @@
 </head>
 <body>
 <header>
-  <h1>Tafelberg - A Table Builder for my.wbs</h1>
+  <h1>Tafelberg - Table Builder</h1>
   <p>Reformat a pasted table, build one from a spreadsheet, or start from a blank grid — then pick a style.</p>
+  <br>Version 1.2</br>
 </header>
 
 <div class="wrap">
@@ -32,7 +33,7 @@
         <input type="radio" name="mode" id="mode-paste" value="paste" checked>
         <label for="mode-paste">Paste HTML<small>reformat</small></label>
         <input type="radio" name="mode" id="mode-upload" value="upload">
-        <label for="mode-upload">Upload<small>CSV / Excel</small></label>
+        <label for="mode-upload">Upload<small>CSV · Excel · Word</small></label>
         <input type="radio" name="mode" id="mode-blank" value="blank">
         <label for="mode-blank">Blank<small>rows × cols</small></label>
       </div>
@@ -84,6 +85,11 @@
           <button class="ghost" id="upload-btn">Choose file</button>
           <input type="file" id="file" accept=".csv,.xlsx,.xls,text/csv" style="display:none">
           <p id="file-status"></p>
+        </div>
+        <div class="editor" style="margin-top:14px">
+          <h3>…or paste a table from Word / Excel / Google <span class="tag">paste here</span></h3>
+          <textarea id="paste-box" class="code" spellcheck="false" style="min-height:120px" placeholder="Copy a table in Word or Excel, then paste it here (Ctrl/Cmd+V)…"></textarea>
+          <p id="paste-status" class="hint"></p>
         </div>
       </div>
 
@@ -213,6 +219,50 @@
     $("file-status").textContent = "Loaded " + label + " — " + r + " rows × " + c + " columns";
     regen();
   }
+
+  // --- Paste a table from Word / Excel / Google -----------------------------
+  // Clipboard carries rich HTML + tab-separated text. Prefer the HTML table
+  // (read cell text only — drops Word's mso junk); fall back to tab-separated.
+  function rowsFromHtmlTable(html) {
+    if (!html) return null;
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    var table = doc.querySelector("table");
+    if (!table) return null;
+    var rows = [];
+    Array.prototype.forEach.call(table.querySelectorAll("tr"), function (tr) {
+      var cells = Array.prototype.map.call(tr.querySelectorAll("th, td"), function (cell) {
+        return (cell.textContent || "").replace(/\s+/g, " ").trim();
+      });
+      if (cells.length) rows.push(cells);
+    });
+    return rows.length ? rows : null;
+  }
+  function rowsFromText(text) {
+    var lines = String(text || "").replace(/\r/g, "").split("\n");
+    if (lines.length && lines[lines.length - 1] === "") lines.pop();
+    if (!lines.length) return null;
+    return lines.map(function (l) { return l.split("\t"); });
+  }
+  function setPasted(rows, source) {
+    uploadedRows = rows;
+    $("paste-box").value = rows.map(function (r) { return r.join("\t"); }).join("\n");
+    $("paste-status").textContent = "Captured " + rows.length + " rows × " + (rows[0] ? rows[0].length : 0) +
+      " columns from " + source + ". Adjust the style on the left.";
+    $("file-status").textContent = "";
+    regen();
+  }
+  $("paste-box").addEventListener("paste", function (e) {
+    var cd = e.clipboardData || window.clipboardData;
+    if (!cd) return; // let the textarea handle it; the input listener will parse
+    var rows = rowsFromHtmlTable(cd.getData("text/html"));
+    if (!rows) rows = rowsFromText(cd.getData("text/plain"));
+    if (rows) { e.preventDefault(); setPasted(rows, "the clipboard"); }
+  });
+  // Fallback: if text lands in the box some other way, parse it as tab-separated.
+  $("paste-box").addEventListener("input", function () {
+    var rows = rowsFromText(this.value);
+    if (rows) { uploadedRows = rows; $("paste-status").textContent = rows.length + " rows × " + (rows[0] ? rows[0].length : 0) + " columns"; regen(); }
+  });
 
   // Wiring
   document.querySelectorAll('input[name="mode"]').forEach(function (el) { el.addEventListener("change", syncMode); });
