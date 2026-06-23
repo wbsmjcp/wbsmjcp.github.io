@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIME Re-typer — WBS</title>
+  <link rel="stylesheet" href="wbs-tools.css">
+  <style>
+    /* ── Tool-specific tweaks ───────────────────────────────────────────── */
+
+    /* Drop zone */
+    .drop-zone {
+      position: relative;
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 36px 20px;
+      text-align: center;
+      background: #fbfbfd;
+      transition: border-color .15s, background .15s;
+      cursor: pointer;
+    }
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--wbs);
+      background: var(--wbs-tint);
+    }
+    .drop-zone .icon {
+      font-size: 1.8rem;
+      display: block;
+      margin-bottom: 8px;
+      opacity: .55;
+    }
+    .drop-zone .primary-text {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: .95rem;
+    }
+    .drop-zone .secondary-text {
+      color: var(--muted);
+      font-size: .8rem;
+      margin-top: 4px;
+    }
+    .drop-zone input[type=file] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+    }
+
+    /* Rules grid */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr auto;
+      gap: 8px 10px;
+      align-items: center;
+    }
+    .rules-grid .col-head {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--muted);
+      font-weight: 700;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .rule-row { display: contents; }
+    .rule-ext, .rule-mime {
+      font-family: var(--mono);
+      font-size: .82rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 9px;
+      width: 100%;
+      background: #fff;
+      color: var(--ink);
+    }
+    .rule-ext:focus, .rule-mime:focus {
+      outline: 2px solid var(--wbs);
+      outline-offset: 1px;
+      border-color: var(--wbs);
+    }
+    .rule-remove {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 9px;
+      font-size: .9rem;
+      line-height: 1;
+      transition: color .15s, border-color .15s;
+    }
+    .rule-remove:hover {
+      color: #b03030;
+      border-color: #d9a8a8;
+    }
+    .btn-add-rule {
+      margin-top: 12px;
+      background: #fff;
+      border: 1px dashed var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 8px 14px;
+      font-size: .82rem;
+      width: 100%;
+      transition: color .15s, border-color .15s;
+    }
+    .btn-add-rule:hover {
+      color: var(--wbs);
+      border-color: var(--wbs);
+    }
+
+    /* File queue */
+    #queue { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .queue-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      background: #fbfbfd;
+      border: 1px solid var(--line);
+      border-left-width: 3px;
+      border-radius: 6px;
+    }
+    .queue-item.matched   { border-left-color: var(--good); }
+    .queue-item.unmatched { border-left-color: var(--warn); opacity: .7; }
+
+    .queue-file-info { min-width: 0; }
+    .queue-name {
+      font-family: var(--mono);
+      font-size: .82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .queue-detail {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .queue-detail .arrow { color: var(--wbs); margin: 0 5px; font-weight: 700; }
+    .queue-detail .new-mime { color: var(--good); font-weight: 600; }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+    .badge-match { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
+    .badge-skip  { background: #fff5e6; color: var(--warn); border: 1px solid #f0d8a8; }
+
+    .btn-remove-item {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 1rem; padding: 2px 6px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .btn-remove-item:hover { color: #b03030; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 18px;
+      font-size: .85rem;
+    }
+
+    #summary {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    #summary strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Marcel - A MIME file converter</h1>
+  <p>Re-download files with a corrected MIME type · runs entirely in your browser</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ── Conversion rules ──────────────────────────────────────────────── -->
+  <div class="panel" style="margin-bottom: 16px;">
+    <h2>Conversion Rules</h2>
+    <div class="rules-grid" id="rules-grid">
+      <span class="col-head">Extension</span>
+      <span class="col-head">Force MIME type</span>
+      <span class="col-head"></span>
+    </div>
+    <button class="btn-add-rule" id="btn-add-rule">+ Add rule</button>
+  </div>
+
+  <!-- ── Files ────────────────────────────────────────────────────────── -->
+  <div class="panel">
+    <h2>Files</h2>
+
+    <div class="drop-zone" id="drop-zone">
+      <span class="icon">📂</span>
+      <div class="primary-text">Drop files here or click to browse</div>
+      <div class="secondary-text">Original filenames and extensions are preserved</div>
+      <input type="file" id="file-input" multiple>
+    </div>
+
+    <div id="queue"></div>
+    <div id="summary"></div>
+
+    <div class="actions">
+      <button class="primary" id="btn-convert" disabled>Convert &amp; Download</button>
+      <button class="ghost" id="btn-clear">Clear list</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Default rules ─────────────────────────────────────────────────────────
+  const DEFAULT_RULES = [
+    { ext: ".r",    mime: "text/plain" },
+    { ext: ".rmd",  mime: "text/plain" },
+    { ext: ".csv",  mime: "text/plain" },
+    { ext: ".tsv",  mime: "text/plain" },
+    { ext: ".tab",  mime: "text/plain" },
+    { ext: ".log",  mime: "text/plain" },
+    { ext: ".md",   mime: "text/plain" },
+    { ext: ".yaml", mime: "text/plain" },
+    { ext: ".yml",  mime: "text/plain" },
+  ];
+
+  let rules = DEFAULT_RULES.map(r => ({ ...r }));
+  let files = []; // { file, rule }
+
+  // ── Rules UI ──────────────────────────────────────────────────────────────
+  const rulesGrid = document.getElementById("rules-grid");
+
+  function renderRules() {
+    rulesGrid.querySelectorAll(".rule-row").forEach(el => el.remove());
+
+    rules.forEach((rule, i) => {
+      const row = document.createElement("div");
+      row.className = "rule-row";
+
+      const extInput = document.createElement("input");
+      extInput.type = "text";
+      extInput.className = "rule-ext";
+      extInput.value = rule.ext;
+      extInput.placeholder = ".ext";
+      extInput.spellcheck = false;
+      extInput.addEventListener("input", () => {
+        rules[i].ext = extInput.value.trim().toLowerCase();
+        refreshQueue();
+      });
+
+      const mimeInput = document.createElement("input");
+      mimeInput.type = "text";
+      mimeInput.className = "rule-mime";
+      mimeInput.value = rule.mime;
+      mimeInput.placeholder = "text/plain";
+      mimeInput.spellcheck = false;
+      mimeInput.addEventListener("input", () => {
+        rules[i].mime = mimeInput.value.trim();
+        refreshQueue();
+      });
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "rule-remove";
+      removeBtn.textContent = "✕";
+      removeBtn.title = "Remove rule";
+      removeBtn.addEventListener("click", () => {
+        rules.splice(i, 1);
+        renderRules();
+        refreshQueue();
+      });
+
+      row.appendChild(extInput);
+      row.appendChild(mimeInput);
+      row.appendChild(removeBtn);
+      rulesGrid.appendChild(row);
+    });
+  }
+
+  document.getElementById("btn-add-rule").addEventListener("click", () => {
+    rules.push({ ext: "", mime: "text/plain" });
+    renderRules();
+  });
+
+  // ── File handling ─────────────────────────────────────────────────────────
+  function getRule(filename) {
+    const lower = filename.toLowerCase();
+    return rules.find(r => r.ext && lower.endsWith(r.ext)) || null;
+  }
+
+  function addFiles(newFiles) {
+    for (const f of newFiles) {
+      if (!files.find(item => item.file.name === f.name && item.file.size === f.size)) {
+        files.push({ file: f, rule: getRule(f.name) });
+      }
+    }
+    renderQueue();
+  }
+
+  function refreshQueue() {
+    files = files.map(item => ({ ...item, rule: getRule(item.file.name) }));
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const queue = document.getElementById("queue");
+    const summary = document.getElementById("summary");
+    const convertBtn = document.getElementById("btn-convert");
+
+    if (files.length === 0) {
+      queue.innerHTML = '<div class="empty-state">No files added yet</div>';
+      summary.textContent = "";
+      convertBtn.disabled = true;
+      return;
+    }
+
+    queue.innerHTML = "";
+    let matchCount = 0;
+
+    files.forEach((item, i) => {
+      const matched = !!item.rule;
+      if (matched) matchCount++;
+
+      const el = document.createElement("div");
+      el.className = `queue-item ${matched ? "matched" : "unmatched"}`;
+
+      const info = document.createElement("div");
+      info.className = "queue-file-info";
+
+      const name = document.createElement("div");
+      name.className = "queue-name";
+      name.textContent = item.file.name;
+
+      const detail = document.createElement("div");
+      detail.className = "queue-detail";
+      const originalMime = item.file.type || "unknown";
+      if (matched) {
+        detail.innerHTML = `${formatBytes(item.file.size)} · ${escapeHtml(originalMime)}<span class="arrow">→</span><span class="new-mime">${escapeHtml(item.rule.mime)}</span>`;
+      } else {
+        detail.innerHTML = `${formatBytes(item.file.size)} · no matching rule`;
+      }
+
+      info.appendChild(name);
+      info.appendChild(detail);
+
+      const badge = document.createElement("span");
+      badge.className = `badge ${matched ? "badge-match" : "badge-skip"}`;
+      badge.textContent = matched ? "Convert" : "Skip";
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "btn-remove-item";
+      removeBtn.textContent = "✕";
+      removeBtn.title = "Remove from list";
+      removeBtn.addEventListener("click", () => {
+        files.splice(i, 1);
+        renderQueue();
+      });
+
+      el.appendChild(info);
+      el.appendChild(badge);
+      el.appendChild(removeBtn);
+      queue.appendChild(el);
+    });
+
+    const skipCount = files.length - matchCount;
+    summary.innerHTML = `<strong>${matchCount}</strong> file${matchCount !== 1 ? "s" : ""} ready to convert${skipCount > 0 ? `, <strong>${skipCount}</strong> skipped` : ""}`;
+    convertBtn.disabled = matchCount === 0;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  // ── Drop zone ─────────────────────────────────────────────────────────────
+  const dropZone = document.getElementById("drop-zone");
+  const fileInput = document.getElementById("file-input");
+
+  dropZone.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropZone.classList.add("drag-over");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    addFiles([...e.dataTransfer.files]);
+  });
+  fileInput.addEventListener("change", () => {
+    addFiles([...fileInput.files]);
+    fileInput.value = "";
+  });
+
+  // ── Convert & download ────────────────────────────────────────────────────
+  document.getElementById("btn-convert").addEventListener("click", async () => {
+    const toConvert = files.filter(item => item.rule);
+    let count = 0;
+
+    for (const item of toConvert) {
+      const buffer = await item.file.arrayBuffer();
+      const blob = new Blob([buffer], { type: item.rule.mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = item.file.name; // preserve original filename & extension
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      count++;
+    }
+
+    showToast(`Downloaded ${count} file${count !== 1 ? "s" : ""}`);
+  });
+
+  document.getElementById("btn-clear").addEventListener("click", () => {
+    files = [];
+    renderQueue();
+  });
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  renderRules();
+  renderQueue();
+</script>
+</body>
+</html>
