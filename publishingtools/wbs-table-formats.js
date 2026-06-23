@@ -32,12 +32,12 @@
       classes: ["table"], centered: false, width: null },
     { id: "bordered", name: "Bordered", desc: "Solid borders around all cells. Bold black header text.",
       classes: ["table", "table-bordered"], centered: false, width: null },
-    { id: "blue1", name: "Blue 1 (recommended)", desc: "Centred, light grey background, dark grey cell borders, slight row striping, dark blue header with bold white text. Best for accessibility and branding.",
+    { id: "blue1", name: "Blue 1 (Standard)", desc: "Centred, light grey background, dark grey cell borders, slight row striping, dark blue header with bold white text. Best for accessibility and branding.",
       classes: ["table", "table-bordered", "table-striped", "wbs-lu-table-type1"], centered: true, width: "80.0%" },
     { id: "blue2", name: "Blue 2", desc: "Centred, pale blue background with white borders. Mid-blue header with bold white text.",
-      classes: ["table", "table-bordered", "wbs-lu-table-type3"], centered: true, width: "80.0%" },
+      classes: ["wbs-lu-table-type3"], centered: true, width: "80.0%" },
     { id: "grey", name: "Grey", desc: "Centred, white background, no borders. Light grey header with white borders and bold black text.",
-      classes: ["table", "wbs-lu-table-type2"], centered: true, width: "80.0%" }
+      classes: ["wbs-lu-table-type2"], centered: true, width: "80.0%" }
   ];
 
   // Modifiers stack on top of any base format.
