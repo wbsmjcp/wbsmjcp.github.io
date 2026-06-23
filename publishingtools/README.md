@@ -4,5 +4,4 @@ This is a list of tools that run locally via your browser which are helpful for 
 <li><a href="varnisher.html"> Varnisher</a> - Cleans up source code for my.wbs</li>
 <li><a href="southpaw.html"> Southpaw</a> - For creating clean box and activity templates</li>
 <li><a href="tafelberg.html"> Tafelburg</a> - Helps to make tables for my.wbs and reformat existing ones</li>
-<li><a href="marcel.html"> Marcel</a> - A MIME file re-typer converter for 'text' files that are hitting an upload error</li>
 </ul>
