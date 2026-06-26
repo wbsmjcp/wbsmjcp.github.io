@@ -44,8 +44,6 @@
   }
 
   // --- Comp-example builder ------------------------------------------------
-  // o: { classes, bg, border:{side,width,color}, extraStyle, icon, iconColor,
-  //      iconExtra, mono, prefix, prefixColor, title, content }
   function buildComp(o) {
     o = o || {};
     var classes = o.classes || "mceTmpl wbs-lu-comp-example";
@@ -68,19 +66,24 @@
   }
 
   // --- Activity builder ----------------------------------------------------
-  // o: { label, icon, labelBg, numberBg, title, number, content }
+  // o: { label, icon, labelBg, numberBg, title, number, content, iconHtml }
   function buildActivity(o) {
     o = o || {};
     var labelStyle = o.labelBg ? ' style="background-color: ' + o.labelBg + ';"' : "";
     var numBg = o.numberBg || o.labelBg;
     var numStyle = numBg ? ' style="background-color: ' + numBg + ';"' : "";
+    // If a raw iconHtml override is provided (TLE image mode), use it;
+    // otherwise fall back to the Font Awesome icon span.
+    var iconDiv = o.iconHtml
+      ? o.iconHtml
+      : '<div class="icon">' + iconSpan(o.icon) + "</div>";
     return [
       '<div class="wbs-lu-activity wbs-lu-activity-x1">',
       '<div class="wbs-lu-activity-label"' + labelStyle + ">",
       '<div class="text tinymce-wbs-protected">',
       "<p>" + esc(o.label || "Activity") + "</p>",
       "</div>",
-      '<div class="icon">' + iconSpan(o.icon) + "</div>",
+      iconDiv,
       "</div>",
       '<div class="wbs-lu-activityinner clearfix">',
       '<div class="wbs-lu-activity-title tinymce-wbs-protected">',
@@ -126,6 +129,16 @@
     ].join("\n");
   }
 
+  // --- TLE image icon HTML (used when "Use TLE images" is ticked) ----------
+  var TLE_ICONS = {
+    poll:         '<div class="icon"><img src="/rafile/i/1492044/v/33/f/15/23A2B29E-D2DD-CCCF-8275336CC1ADD508.png" alt="" width="18" height="18"></div>',
+    exercise:     '<div class="icon"><img src="/rafile/i/1492044/v/33/f/14/DF93579D-9611-E338-ABA7CB0AB327ABAC.png" alt="" width="21" height="27"></div>',
+    photowall:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/13/DF920AB1-F2C3-12BC-AB61E4959521E020.png" alt="" width="21" height="27"></div>',
+    stopthink:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/12/DF90945A-9D79-0C09-E8DC4CE87DC9C2F9.png" alt="" width="21" height="27"></div>',
+    guidedread:   '<div class="icon"><img src="/rafile/i/1622788/v/6/f/15/2AD403C0-CDC8-BCE5-FE5BEBAD3783C583.png" alt="" width="21" height="27"></div>',
+    wbslive:      '<div class="icon"><img src="/rafile/i/1492044/v/33/f/19/2A90E513-DB70-9860-643AD1EFFBD52569.png" alt="" width="21" height="21"></div>'
+  };
+
   // --- Template definitions ------------------------------------------------
   var TEMPLATES = [
     // ---- Comp-example family ----
@@ -161,7 +174,8 @@
       params: { label: "Talking point", icon: "fa fa-comments", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "stopthink", name: "Stop and think", family: "activity", keywords: ["stop and think"], icon: "fa fa-pause-circle-o",
-      params: { label: "Stop and think", icon: "fa fa-pause-circle-o", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Stop and think", icon: "fa fa-pause-circle-o", numberPrefix: "Activity", refPlaceholder: "x.x",
+        tleIconKey: "stopthink" } },
 
     { id: "groupwork", name: "Group work", family: "activity", keywords: ["group work"], icon: "fa fa-users",
       params: { label: "Group work", icon: "fa fa-users", numberPrefix: "Activity", refPlaceholder: "x.x" } },
@@ -170,31 +184,39 @@
       params: { label: "Journal", icon: "fa fa-address-book", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "photowall", name: "Photo wall", family: "activity", keywords: ["photo wall", "photo"], icon: "fa fa-picture-o",
-      params: { label: "Photo wall", icon: "fa fa-picture-o", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Photo wall", icon: "fa fa-picture-o", numberPrefix: "Activity", refPlaceholder: "x.x",
+        tleIconKey: "photowall" } },
 
     { id: "quiz", name: "Quiz", family: "activity", keywords: ["quiz"], icon: "fa fa-question-circle",
       params: { label: "Quiz", icon: "fa fa-question-circle", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "poll", name: "Poll", family: "activity", keywords: ["poll"], icon: "fa fa-bar-chart",
-      params: { label: "Poll", icon: "fa fa-bar-chart", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Poll", icon: "fa fa-bar-chart", numberPrefix: "Activity", refPlaceholder: "x.x",
+        tleIconKey: "poll" } },
 
     { id: "exercise", name: "Exercise", family: "activity", keywords: ["try it for yourself", "exercise"], icon: "fa fa-pencil-square-o",
-      params: { label: "Exercise", icon: "fa fa-pencil-square-o", numberPrefix: "Activity", refPlaceholder: "x.x", titlePlaceholder: "Try it for yourself" } },
+      params: { label: "Exercise", icon: "fa fa-pencil-square-o", numberPrefix: "Activity", refPlaceholder: "x.x", titlePlaceholder: "Try it for yourself",
+        tleIconKey: "exercise" } },
 
     { id: "read-textbook", name: "Guided reading — textbook", family: "activity", keywords: ["textbook reading", "textbook"], icon: "fa fa-book",
-      params: { label: "Textbook reading", icon: "fa fa-book", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x" } },
+      params: { label: "Textbook reading", icon: "fa fa-book", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
+        tleIconKey: "guidedread" } },
 
     { id: "read-library", name: "Guided reading — library", family: "activity", keywords: ["library reading", "library"], icon: "fa fa-university",
-      params: { label: "Library reading", icon: "fa fa-university", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x" } },
+      params: { label: "Library reading", icon: "fa fa-university", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
+        tleIconKey: "guidedread" } },
 
     { id: "read-web", name: "Guided reading — web", family: "activity", keywords: ["web reading"], icon: "fa fa-globe",
-      params: { label: "Web reading", icon: "fa fa-globe", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x" } },
+      params: { label: "Web reading", icon: "fa fa-globe", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
+        tleIconKey: "guidedread" } },
 
     { id: "read-case", name: "Guided reading — case study", family: "activity", keywords: ["case study"], icon: "fa fa-suitcase",
-      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x" } },
+      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
+        tleIconKey: "guidedread" } },
 
     { id: "wbslive", name: "wbsLive", family: "activity", keywords: ["wbslive"], icon: "fa fa-video-camera",
-      params: { label: "wbsLive", icon: "fa fa-video-camera", labelBg: "rgb(166,0,0)", numberPrefix: "wbsLive", refPlaceholder: "x" } },
+      params: { label: "wbsLive", icon: "fa fa-video-camera", labelBg: "rgb(166,0,0)", numberPrefix: "wbsLive", refPlaceholder: "x",
+        tleIconKey: "wbslive" } },
 
     { id: "ai-exercise", name: "AI Exercise", family: "activity", keywords: ["ai exercise", "ai activity"], icon: "fa fa-bolt",
       params: { label: "AI Exercise", icon: "fa fa-bolt", labelBg: "rgb(130,26,214)", numberPrefix: "Activity", refPlaceholder: "x.x.x", titlePlaceholder: "Title of the activity" } },
@@ -227,10 +249,15 @@
     }
     // activity
     var num = (p.numberPrefix || "Activity") + " " + (opts.reference || p.refPlaceholder || "x.x");
-    return buildActivity({
+    var actOpts = {
       label: p.label, icon: p.icon, labelBg: p.labelBg, numberBg: p.numberBg || p.labelBg,
       title: opts.title || p.titlePlaceholder || "Title of Activity", number: num, content: content
-    });
+    };
+    // Swap in TLE image icon when the flag is set and this template supports it
+    if (opts.useTLE && p.tleIconKey && TLE_ICONS[p.tleIconKey]) {
+      actOpts.iconHtml = TLE_ICONS[p.tleIconKey];
+    }
+    return buildActivity(actOpts);
   }
 
   // Return the id of the most specific template whose keyword appears in the text.
