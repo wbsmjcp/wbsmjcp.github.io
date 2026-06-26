@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Box Builder — learning-content tools</title>
+<title>Southpaw - A Box Builder — learning-content tools</title>
 
 <!-- Shared theme (keep wbs-tools.css in the same folder) -->
 <link rel="stylesheet" href="wbs-tools.css">
@@ -33,7 +33,7 @@
 </head>
 <body>
 <header>
-  <h1>Box Builder</h1>
+  <h1>Southpaw - A Box Builder for my.wbs</h1>
   <p>Generate a ready-to-paste WBS box. Pick a template or build your own — runs in your browser.</p>
 </header>
 
@@ -63,6 +63,12 @@
           <label for="tpl-title">Title</label>
           <p class="hint">Optional — falls back to the template placeholder.</p>
           <input type="text" id="tpl-title" placeholder="optional title">
+        </div>
+
+        <h2>Settings</h2>
+        <div class="field">
+          <label class="inline-check"><input type="checkbox" id="tpl-tle-icons"> Use TLE images not icon set</label>
+          <p class="hint">Swaps FA icons for the custom TLE image icons on supported activity boxes (poll, exercise, photo wall, stop&nbsp;&amp;&nbsp;think, wbsLive, guided&nbsp;reading).</p>
         </div>
       </div>
 
@@ -192,7 +198,8 @@
     if (mode() === "template") {
       return B.build($("tpl-select").value, content, {
         title: $("tpl-title").value.trim(),
-        reference: $("tpl-ref").value.trim()
+        reference: $("tpl-ref").value.trim(),
+        useTLE: $("tpl-tle-icons").checked
       });
     }
     var opts = { content: content, icon: selectedIcon, prefix: $("new-label").value.trim() };
@@ -251,6 +258,7 @@
     $(id).addEventListener("input", regen);
   });
   $("icon-search").addEventListener("input", function () { renderIconGrid(this.value); });
+  $("tpl-tle-icons").addEventListener("change", regen);
 
   $("copy").addEventListener("click", function () {
     var out = $("output").value;
