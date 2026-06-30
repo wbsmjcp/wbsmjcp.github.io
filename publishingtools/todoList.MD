@@ -5,6 +5,7 @@
 * Reference list sorter - Something that allows pasting a reference list in and that correctly formats the html and orders the pasted list. (Will call it Hillbert)
 * Move the posterframe creator app to a JS script - one for discussion with Dan? Could be something academics can use themselves to create thumbnails.
 * Examples/frameworks collector - Upload a lesson draft, PowerPoint draft, pdf, etc and it creates a table of all the theories, examples, references, frameworks etc in a lesson. Perhaps even adds it to a master table. This is most likely going to need to be on Copilot Studio and can be linked to a database? Could be searchable by the team.
+* Lesson overview calculator + parser? - Rather than a confusing spreadsheet, it could be something online, maybe even allowing PDF upload and have it auto-detect where activities are placed
 
 ---
 
