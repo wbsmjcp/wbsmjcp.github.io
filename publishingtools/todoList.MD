@@ -24,6 +24,7 @@
 * Need to change the order of the buttons at the bottom (I can do that... not Claude) probably want COPY HTML to be the last button.
 * Add version number
 * Remove 'Transcribed by Otter AI' default text when using Clipboard (also check txt/docx for formatting removing)
+* Filter out timestamps, should someone have copied or exported with time stamps enabled. (Maybe this is a button that can be pressed)
 
 ## Varnisher - Parser and fixer for my.wbs source code
 * Add in template boxes for fixing issues with those
