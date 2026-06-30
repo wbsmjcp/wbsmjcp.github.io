@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skippy — jump-link creator</title>
+
+<!-- Fallback theme tokens so the tool is legible even without wbs-tools.css.
+     wbs-tools.css is linked AFTER this block, so the shared theme wins when present. -->
+<style>
+  :root{
+    --wbs:#0054a4; --wbs-tint:#e7eff7; --ink:#1c2230; --muted:#6b7280; --line:#d7dbe3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Open Sans",Helvetica,Arial,sans-serif;color:var(--ink);background:#f5f6f8}
+  header{background:var(--wbs);color:#fff;padding:18px 24px}
+  header h1{margin:0 0 4px;font-size:1.35rem}
+  header p{margin:0;font-size:.85rem;opacity:.9}
+  .wrap{padding:20px 24px}
+  .layout{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}
+  .panel h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+  .panel h2:not(:first-child){margin-top:20px}
+  .field{margin-bottom:12px}
+  .hint{font-size:.75rem;color:var(--muted);margin:4px 0 0}
+  .inline-check{display:flex;gap:8px;align-items:center;font-size:.82rem;font-weight:600}
+  .inline-check input{width:15px;height:15px;accent-color:var(--wbs)}
+  main{min-width:0}
+  .editors{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.editors{grid-template-columns:1fr}}
+  .editor h3{font-size:.85rem;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--wbs);background:var(--wbs-tint);padding:2px 7px;border-radius:99px}
+  .code{width:100%;min-height:240px;font-family:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:.78rem;line-height:1.45;border:1px solid var(--line);border-radius:8px;padding:10px 12px;resize:vertical;background:#fff;color:var(--ink)}
+  .actions{margin:14px 0 4px;display:flex;align-items:center;gap:12px}
+  button.primary{font:inherit;font-weight:700;font-size:.85rem;color:#fff;background:var(--wbs);border:0;border-radius:8px;padding:10px 16px;cursor:pointer}
+  button.primary:hover{filter:brightness(1.06)}
+  .outline{list-style:none;margin:0;padding:0;font-size:.8rem;max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fbfbfd;padding:8px 10px}
+  .outline li{padding:2px 0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .outline code{color:var(--muted);font-size:.72rem}
+  .outline .empty{color:var(--muted);font-style:italic}
+  #preview{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;min-height:120px;display:block}
+  .caveat{font-size:.75rem;color:var(--muted);margin:6px 0 0}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1c2230;color:#fff;padding:10px 18px;border-radius:99px;font-size:.82rem;opacity:0;pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<!-- Shared theme (keep wbs-tools.css in the same folder) — overrides the fallback above when present -->
+<link rel="stylesheet" href="wbs-tools.css">
+<!-- Font Awesome 4 for the preview -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+<header>
+  <h1>Skippy</h1>
+  <p>Paste a TinyMCE page, get it back with a jump-link box at the top. Runs entirely in your browser.</p>
+  <p>Version 1</p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Options">
+      <h2>Options</h2>
+      <div class="field">
+        <label class="inline-check"><input type="checkbox" id="opt-sub" checked> Include sub-headings (h3 and below)</label>
+        <p class="hint">When off, only h2 headings get anchors and links.</p>
+      </div>
+
+      <h2>Outline</h2>
+      <ul class="outline" id="outline"><li class="empty">Paste some HTML to see the headings found.</li></ul>
+      <p class="hint">Indented by level. IDs already on a heading are kept as-is.</p>
+    </aside>
+
+    <main>
+      <div class="editors">
+        <div class="editor">
+          <h3>Your page HTML <span class="tag">paste here</span></h3>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the full TinyMCE-saved HTML for the page here."></textarea>
+        </div>
+        <div class="editor">
+          <h3>HTML with jump box <span class="tag">output</span></h3>
+          <textarea id="output" class="code" spellcheck="false" readonly placeholder="The same HTML, with a jump-link box prepended and ids added to headings."></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="copy">Copy HTML</button>
+        <span id="note" class="hint"></span>
+      </div>
+
+      <h3 style="font-size:.85rem;margin:8px 0 6px;">Preview</h3>
+      <iframe id="preview" title="Preview"></iframe>
+      <p class="caveat">Faithful preview — loads <code>wbs-platform.css</code> in an isolated frame. It will look slightly different to how it does on my.wbs.</p>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function showToast(msg) {
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1700);
+  }
+
+  function escHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Strip inner markup from a heading to get its plain text label.
+  function stripTags(html) {
+    var d = document.createElement("div");
+    d.innerHTML = html;
+    return (d.textContent || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  // First three words -> lowercase hyphenated slug.
+  function slugify(text) {
+    var words = text.trim().split(/\s+/).slice(0, 3).join(" ");
+    return words.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section";
+  }
+
+  function makeUnique(base, used) {
+    if (!used[base]) { used[base] = 1; return base; }
+    var n = 2;
+    while (used[base + "-" + n]) n++;
+    used[base] += 1;
+    used[base + "-" + n] = 1;
+    return base + "-" + n;
+  }
+
+  // Build the inline-styled WBS jump box from the collected headings.
+  function buildBox(items) {
+    if (!items.length) return "";
+    var minLevel = items.reduce(function (m, it) { return Math.min(m, it.level); }, 6);
+    var rows = items.map(function (it) {
+      var depth = it.level - minLevel;
+      var indent = depth * 22;
+      var size = depth === 0 ? 14 : 13;
+      return '  <p style="margin: 5px 0; padding-left: ' + indent + 'px;">' +
+        '<a href="#' + it.id + '" style="color: rgb(255,255,255); font-size: ' + size +
+        'px; text-decoration: underline;">' + escHtml(it.text) + "</a></p>";
+    }).join("\n");
+    return '<div data-skippy="jumpbox" style="background-color: rgb(0,84,164); padding: 16px 20px; margin-bottom: 24px;">\n' +
+      '  <p style="color: rgb(255,255,255); font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px 0;">Jump to section</p>\n' +
+      rows + "\n</div>";
+  }
+
+  // Core transform: inject ids into headings (h2-h6, never h1) and collect an outline.
+  function process(html, includeSub) {
+    // Remove a previously generated Skippy box so re-running doesn't stack boxes.
+    html = html.replace(/<div[^>]*data-skippy=["']jumpbox["'][\s\S]*?<\/div>\s*/i, "");
+    var used = {};
+    var items = [];
+    var maxLevel = includeSub ? 6 : 2;
+    var re = /<h([2-6])((?:\s[^>]*)?)>([\s\S]*?)<\/h\1>/gi;
+    var out = html.replace(re, function (m, lvl, attrs, inner) {
+      var level = parseInt(lvl, 10);
+      if (level > maxLevel) return m;
+      var text = stripTags(inner);
+      if (!text) return m; // skip empty headings
+      var existing = /\bid\s*=\s*["']([^"']*)["']/i.exec(attrs);
+      var id;
+      if (existing && existing[1]) {
+        id = existing[1];
+        used[id] = used[id] ? used[id] + 1 : 1;
+        items.push({ level: level, id: id, text: text });
+        return m; // heading already has an id — leave it exactly as-is
+      }
+      id = makeUnique(slugify(text), used);
+      items.push({ level: level, id: id, text: text });
+      return "<h" + level + ' id="' + id + '"' + attrs + ">" + inner + "</h" + level + ">";
+    });
+    return { html: out, items: items };
+  }
+
+  function renderOutline(items) {
+    var ul = $("outline");
+    ul.innerHTML = "";
+    if (!items.length) {
+      ul.innerHTML = '<li class="empty">No h2&ndash;h6 headings found.</li>';
+      return;
+    }
+    var minLevel = items.reduce(function (m, it) { return Math.min(m, it.level); }, 6);
+    items.forEach(function (it) {
+      var li = document.createElement("li");
+      li.style.paddingLeft = ((it.level - minLevel) * 16) + "px";
+      li.innerHTML = escHtml(it.text) + ' <code>#' + escHtml(it.id) + "</code>";
+      ul.appendChild(li);
+    });
+  }
+
+  function previewDoc(boxHtml) {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700%7COpen+Sans+Condensed:300,700">' +
+      '<link rel="stylesheet" href="wbs-platform.css">' +
+      '<style>html,body{margin:0}body{padding:24px;background:#fff;font-family:"Open Sans",Helvetica,Arial,sans-serif}</style>' +
+      "</head><body>" + boxHtml + "</body></html>";
+  }
+
+  function regen() {
+    var src = $("input").value;
+    if (!src.trim()) {
+      $("output").value = "";
+      $("note").textContent = "";
+      renderOutline([]);
+      $("outline").innerHTML = '<li class="empty">Paste some HTML to see the headings found.</li>';
+      $("preview").srcdoc = previewDoc("");
+      return;
+    }
+    var res = process(src, $("opt-sub").checked);
+    var box = buildBox(res.items);
+    var full = box ? (box + "\n\n" + res.html) : res.html;
+    $("output").value = full;
+    renderOutline(res.items);
+    var n = res.items.length;
+    $("note").textContent = n ? ("Found " + n + " heading" + (n === 1 ? "" : "s") + ".") : "No headings found — nothing to link.";
+    $("preview").srcdoc = previewDoc(full);
+  }
+
+  $("input").addEventListener("input", regen);
+  $("opt-sub").addEventListener("change", regen);
+
+  $("copy").addEventListener("click", function () {
+    var out = $("output").value;
+    if (!out) { showToast("Nothing to copy yet"); return; }
+    navigator.clipboard.writeText(out).then(
+      function () { showToast("HTML copied"); },
+      function () { $("output").select(); document.execCommand("copy"); showToast("HTML copied"); }
+    );
+  });
+
+  $("preview").addEventListener("load", function () {
+    try {
+      var doc = this.contentDocument;
+      var h = doc && doc.body ? doc.documentElement.scrollHeight : 0;
+      if (h) this.style.height = (h + 10) + "px";
+    } catch (e) { /* ignore */ }
+  });
+
+  regen();
+})();
+</script>
+</body>
+</html>
