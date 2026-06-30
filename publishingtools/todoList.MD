@@ -16,6 +16,7 @@
 * Version history - wonder if there's a better way to host version history changes on the tools. Perhaps a MD file which can just be updated?
 * update the colours and design - more WBS dark blue than light blue - maybe a few other things too...
 * Add a Project folder in Claude and link github better so I can push/pull better
+* Might be convuluted and unnecessary - could add a button/contact so that people can report bugs, feature requests, ideas, suggestions
 
 ## Petrock - Otter transcription fixer
 * Consider adding in slide references when slides change
