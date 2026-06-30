@@ -1,10 +1,10 @@
 # Ideas
-* ~Box creator - drop down list, specifies what type of box is wanted, and if it should use the default stylisation~
+* ~Box creator - drop-down list, specifies what type of box is wanted, and if it should use the default stylisation~
 * LaTeX fixer - Is this needed? Is there something online that can do this better already?
 * Image/Table to text - Rather than always asking AI to fix this and wasting credits/tokens/water etc.
 * Reference list sorter - Something that allows pasting a reference list in and that correctly formats the html and orders the pasted list. (Could call it Hillbert - because of Johna Hill and Dr Hibbert from the Simpsons)
 * Move the posterframe creator app to a JS script - one for discussion with Dan? Could be something academics can use themselves to create thumbnails.
-* Examples/frameworks collector - Upload a lesson draft, powerpoint draft, pdf, etc and it creates a table of all the theories, examples, references, frameworks etc in a lesson. Perhaps even adds it to a master table. This is most likely going to need to be on Copilot Studio and can be linked to a database? Could be searchable by the team.
+* Examples/frameworks collector - Upload a lesson draft, Powerpoint draft, pdf, etc and it creates a table of all the theories, examples, references, frameworks etc in a lesson. Perhaps even adds it to a master table. This is most likely going to need to be on Copilot Studio and can be linked to a database? Could be searchable by the team.
 
 ---
 
@@ -12,9 +12,14 @@
 
 ## Overall
 * Move over to using a consistent style sheet for all tools, rather than individually embedding it within each html doc.
+* Version history - wonder if there's a better way to host version history changes on the tools. Perhaps a MD file which can just be updated?
+* update the colours and design - more WBS dark blue than light blue - maybe a few other things too...
+* Add a Project folder in Claude and link github better so I can push/pull better
 
 ## Petrock - Otter transcription fixer
 * Consider adding in slide references when slides change
+* Need to change the order of the buttons at the bottom (I can do that... not Claude) probably want COPY HTML to be the last button.
+* Add version number
 
 ## Varnisher - Parser and fixer for my.wbs source code
 * Add in template boxes for fixing issues with those
