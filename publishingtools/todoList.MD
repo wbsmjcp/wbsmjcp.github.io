@@ -17,6 +17,7 @@
 * update the colours and design - more WBS dark blue than light blue - maybe a few other things too...
 * Add a Project folder in Claude and link github better so I can push/pull better
 * Might be convuluted and unnecessary - could add a button/contact so that people can report bugs, feature requests, ideas, suggestions
+* Layout changes across the board - rather than being left side bar heavy, would it make more sense to have controls across the top?
 
 ## Petrock - Otter transcription fixer
 * Consider adding in slide references when slides change
