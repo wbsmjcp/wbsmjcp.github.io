@@ -21,7 +21,7 @@
 
 ## Petrock - Otter transcription fixer
 * Consider adding in slide references when slides change
-* Need to change the order of the buttons at the bottom (I can do that... not Claude) probably want COPY HTML to be the last button.
+* Need to change the order of the buttons at the bottom (I can do that... not Claude), probably want COPY HTML to be the last button.
 * Add version number
 * Remove 'Transcribed by Otter AI' default text when using Clipboard (also check txt/docx for formatting removing)
 * Filter out timestamps, should someone have copied or exported with time stamps enabled. (Maybe this is a button that can be pressed)
@@ -37,6 +37,7 @@
 * Add image files for non FA icon templates
 * Add upload file option for icons, with specifications for good image dimensions and properties.
 * Add auto-detect of pasted content (e.g. grab a title, select a box type, identify the box number if it exists)
+* Add standard wording for certain boxes and a tick box for 'gating' disclaimer.
 
 ## Tafelburg - A Table creator
 * Fix previews
