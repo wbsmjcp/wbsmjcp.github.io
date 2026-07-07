@@ -5,7 +5,8 @@
 * Reference list sorter - Something that allows pasting a reference list in, which then correctly formats the HTML and orders the pasted list. (Could call it Hillbert) - not sure how useful this would be. Still requires some initial formatting from the team to be worthwhile? How will it know if something is a book vs a web page for example?
 * Move the posterframe creator app to a JS script - one for discussion with Dan? Could be something academics can use themselves to create thumbnails.
 * Examples/frameworks collector - Upload a lesson draft, PowerPoint draft, pdf, etc and it creates a table of all the theories, examples, references, frameworks etc in a lesson. Perhaps even adds it to a master table. This is most likely going to need to be on Copilot Studio and can be linked to a database? Could be searchable by the team.
-* Lesson overview calculator + parser? - Rather than a confusing spreadsheet, it could be something online, maybe even allowing PDF upload and have it auto-detect where activities are placed
+* Lesson overview calculator + parser? - Rather than a confusing spreadsheet, it could be something online, maybe even allowing PDF upload and have it auto-detect where activities are placed - PAUSE? DEPENDS ON THE ASYNC PRIORITISATION
+* Other publishing tools? Teaching faculty pages etc.
 
 ---
 
