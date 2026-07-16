@@ -31,6 +31,7 @@
 ## Varnisher - Parser and fixer for my.wbs source code
 * Add in template boxes for fixing issues with those
 * Add a checker for rogue responsiveness spans `<span class="responsive-iframe-container" style="padding-bottom: 56.25%;">` which are used on text, thus causing a large grey boundary box to appear. 
+* Add a check that ensures that tables are surrounded by appropriate div tags and that divs tags aren't closed later than necessary.
 
 ## Southpaw - Box template creator
 * Add more CSS from my.wbs to improve previews (generic div box)
