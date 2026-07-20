@@ -11,7 +11,7 @@
    you need (e.g. a wider side panel). To hand someone a standalone single
    file, paste this file's contents into a <style> block in place of the link.
    ========================================================================== */
-
+ 
 /* --- Design tokens ------------------------------------------------------- */
 :root {
   --wbs: #00A9E0;          /* primary accent (WBS blue) */
