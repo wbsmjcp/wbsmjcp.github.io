@@ -35,7 +35,7 @@
 <header>
   <h1>Southpaw - A Box Builder for my.wbs</h1>
   <p>Generate a ready-to-paste WBS box. Pick a template or build your own — runs in your browser.</p>
-  <p>Version 1.3 - added tick box for using our own images instead of icon set.</p>
+  <p><span class="versionInfo">Version 1.3.2 - <span id="datemod"></span></span><span class="versionInfo viDetail">Minor fixes and added clear button.</span></p>
 </header>
 
 <div class="wrap">
@@ -121,7 +121,8 @@
       </div>
 
       <div class="actions">
-        <button class="primary" id="copy">Copy HTML</button>
+        <button class="primary primary-warn" id="clearBox">Clear input</button>
+        <button class="primary primary-output" id="copy">Copy HTML</button>
         <span id="detect-note" class="hint" style="margin-left:4px"></span>
       </div>
 
@@ -133,6 +134,7 @@
   </div>
 </div>
 
+<footer>  <p>Fun fact: Southpaw is a boxing stance. That's the joke.</p></footer>
 <div class="toast" id="toast"></div>
 
 <script src="wbs-box-templates.js"></script>
@@ -227,6 +229,7 @@
       '</head><body>' + boxHtml + '</body></html>';
   }
 
+
   // --- Auto-detect template from pasted text ---
   function autoDetect() {
     if (mode() !== "template" || userPicked) return;
@@ -268,6 +271,12 @@
       function () { showToast("HTML copied"); },
       function () { $("output").select(); document.execCommand("copy"); showToast("HTML copied"); }
     );
+  });
+
+  $("clearBox").addEventListener("click", function () {
+    $("input").value = "";
+    autoDetect();
+    regen();
   });
 
   // Resize the preview iframe to fit its content each time it reloads.

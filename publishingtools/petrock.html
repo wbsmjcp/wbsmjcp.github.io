@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Petrock - A transcript Formatter</title>
+
+<!-- Fallback theme tokens so the tool is legible even without wbs-tools.css.
+     wbs-tools.css is linked AFTER this block, so the shared theme wins when present. -->
 <style>
   :root {
     --wbs: #00A9E0;        /* WBS colours, used sparingly as the one accent */
@@ -98,12 +101,17 @@
     background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .85rem; opacity: 0; pointer-events: none; transition: opacity .2s; }
   .toast.show { opacity: 1; }
 </style>
+
+<!-- Shared theme (keep wbs-tools.css in the same folder) — overrides the fallback above when present -->
+<link rel="stylesheet" href="wbs-tools.css">
+<!-- Font Awesome 4 for the preview -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
 <header>
   <h1>Petrock - A transcript formatter for TLE</h1>
   <p>Wraps a transcript in the standard accordion box and labels speakers — runs entirely in your browser, nothing is sent anywhere.</p>
-  <p>It's an Otter's best friend</p>
+  <p><span class="versionInfo">Version 1.4.1 - <span id="datemod"></span></span><span class="versionInfo viDetail">Improved UI, added clear transcript button, moved to shared CSS palette, improved error handling.</span></p>
 </header>
 
 <div class="wrap">
@@ -137,13 +145,16 @@
         <label for="disclaimer">Shown in the box above the transcript</label>
         <textarea id="disclaimer">Please note: This transcript has been auto-generated, and then manually checked, but it may still contain a few inaccuracies. The transcript serves as a text-based version of the spoken content, therefore there may be small differences to improve the flow for reading. We hope you find this useful.</textarea>
       </details>
+      <div class="sample">
+       <button class="ghost ghost-small" id="sample">Load sample</button>
+      </div>
     </aside>
 
     <main>
       <div class="editors">
         <div class="editor">
           <h3>Paste the transcript <span class="tag">input</span></h3>
-          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the transcript here, e.g.&#10;Lisa Weaver: Hi everyone...&#10;Jenny Lloyd: I'm Jenny Lloyd..."></textarea>
+          <textarea id="input" class="code" spellcheck="false" placeholder="Paste the transcript here, e.g.&#10;Lisa Weaver: Hi everyone...&#10;Jenny Lloyd: I'm Jenny Lloyd... &#010;&#010;Or use 'Upload.docx/txt' below."></textarea>
         </div>
         <div class="editor">
           <h3>Formatted HTML <span class="tag">output</span></h3>
@@ -152,18 +163,18 @@
       </div>
 
       <div class="actions">
-        <button class="primary" id="format">Format transcript</button>
-        <button class="ghost" id="copy">Copy HTML</button>
         <button class="ghost" id="upload-btn">Upload .docx / .txt</button>
-        <button class="ghost" id="sample">Load sample</button>
         <input type="file" id="file" accept=".docx,.txt,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none">
+        <button class="primary primary-warn" id="clearTranscript">Clear transcript</button>
+        <button class="primary primary-input" id="format">Format transcript</button>
+        <button class="primary primary-output" id="copy">Copy HTML</button>
       </div>
 
       <div id="summary"><span class="empty">A summary will appear here after formatting.</span></div>
     </main>
   </div>
 </div>
-
+<footer>  <p>It's an Otter's best friend</p></footer>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -188,6 +199,61 @@
     s = s.trim();
     if (!s || s.length > 40 || /[.?!,:;]$/.test(s)) return false;
     return /^[A-Z][A-Za-z.'’\-]*(?:\s+[A-Z][A-Za-z.'’\-]*){0,3}$/.test(s);
+  }
+
+  // ---- Otter.ai export cleanup -------------------------------------------
+  // Otter transcripts commonly carry three kinds of cruft that aren't part of
+  // the actual transcript: a trailing timestamp after each speaker's name
+  // (e.g. "Jodie Lucas  0:00"), a "SUMMARY KEYWORDS" block near the top, and a
+  // "Transcribed by https://otter.ai" branding footer. All three are stripped
+  // before formatting; none of this touches the pasted/uploaded source text
+  // as shown in the input box, only the working copy used to build the output.
+
+  var TS_BARE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
+  var TS_TRAILING = /^(.*?)\s{1,4}\d{1,2}:\d{2}(?::\d{2})?\s*$/;
+
+  // Strips a trailing "  0:00" style timestamp from a single line. Only
+  // strips it when what's left looks like a name, so spoken text that happens
+  // to end in a real time (e.g. "...let's meet again at 3:45") is left alone.
+  // A line that is nothing but a bare timestamp is dropped entirely ("").
+  function stripLineTimestamp(line) {
+    var trimmed = line.trim();
+    if (TS_BARE.test(trimmed)) return "";
+    var m = trimmed.match(TS_TRAILING);
+    if (m && looksLikeName(m[1].trim())) return m[1].trim();
+    return line;
+  }
+
+  function stripTimestamps(text) {
+    return text.split(/\r?\n/).map(stripLineTimestamp).join("\n");
+  }
+
+  var OTTER_BRANDING = /^(transcribed\s+by\s+)?(https?:\/\/)?(www\.)?otter\.ai\/?\s*$/i;
+  var SUMMARY_KEYWORDS_HEADING = /^summary\s+keywords\s*:?$/i;
+
+  // Drops the "SUMMARY KEYWORDS" heading and the keyword list line that
+  // follows it (plus any blank lines around that pair), and drops the
+  // otter.ai branding footer line wherever it falls.
+  function stripOtterMetadata(text) {
+    var lines = text.split(/\r?\n/);
+    var out = [];
+    var i = 0;
+    while (i < lines.length) {
+      var trimmed = lines[i].trim();
+
+      if (SUMMARY_KEYWORDS_HEADING.test(trimmed)) {
+        i++; // drop the heading itself
+        while (i < lines.length && !lines[i].trim()) i++; // any blank line right after it
+        if (i < lines.length) i++; // the keyword list line
+        while (i < lines.length && !lines[i].trim()) i++; // any blank line after that
+        continue;
+      }
+      if (OTTER_BRANDING.test(trimmed)) { i++; continue; }
+
+      out.push(lines[i]);
+      i++;
+    }
+    return out.join("\n");
   }
 
   // Detect speakers from plain text via two signals:
@@ -261,12 +327,17 @@
   }
 
   function renderIndividual(text, stripName) {
-    var re = stripName ? new RegExp("^" + escapeRegex(stripName) + "\\s*:\\s*", "i") : null;
+    var colonRe = stripName ? new RegExp("^" + escapeRegex(stripName) + "\\s*:\\s*", "i") : null;
+    // A line that's nothing but the speaker's own name — the label Otter repeats
+    // before every timestamped segment even for a single-speaker recording, and
+    // which is left bare once the timestamp itself has already been stripped.
+    var bareRe = stripName ? new RegExp("^" + escapeRegex(stripName) + "\\s*$", "i") : null;
     var paras = text.split(/\r?\n/)
       .map(function (l) { return l.trim(); })
       .filter(Boolean)
+      .filter(function (line) { return !(bareRe && bareRe.test(line)); })
       .map(function (line) {
-        if (re) line = line.replace(re, "");
+        if (colonRe) line = line.replace(colonRe, "");
         return "<p>" + escapeHtml(line) + "</p>";
       });
     return { html: paras.join("\n"), paragraphs: paras.length, speakers: [] };
@@ -295,13 +366,13 @@
     $("speakers-hint").textContent = interview
       ? "One per line, or comma-separated. Used to split turns and bold each name when the speaker changes."
       : "If the transcript is prefixed with a name (e.g. \u201CName:\u201D), enter it here to strip the prefix. Leave blank otherwise.";
-    $("detect").style.display = interview ? "" : "none";
+    /*$("detect").style.display = interview ? "" : "none";*/
   }
   $("mode-interview").addEventListener("change", syncModeUI);
   $("mode-individual").addEventListener("change", syncModeUI);
 
   $("detect").addEventListener("click", function () {
-    var found = detectSpeakers($("input").value);
+    var found = detectSpeakers(stripTimestamps(stripOtterMetadata($("input").value)));
     if (!found.length) { showToast("No \u201CName:\u201D labels found"); return; }
     $("speakers").value = found.join("\n");
     if (found.length >= 2) { $("mode-interview").checked = true; syncModeUI(); }
@@ -310,7 +381,8 @@
 
   $("format").addEventListener("click", function () {
     if (!$("input").value.trim()) { showToast("Paste a transcript first"); return; }
-    var src = stripTitleLine($("input").value, $("title").value);
+    var src = stripTimestamps(stripOtterMetadata($("input").value));
+    src = stripTitleLine(src, $("title").value);
 
     var result;
     if (getMode() === "interview") {
@@ -341,6 +413,14 @@
     );
   });
 
+  $("clearTranscript").addEventListener("click", function () {
+    $("input").value = "";
+    $("title").value = "";
+    $("speakers").value = "";
+    $("output").value = "";
+    $("summary").innerHTML = "";
+  });
+
   $("sample").addEventListener("click", function () {
     $("title").value = "The importance of feedback";
     $("mode-interview").checked = true; syncModeUI();
@@ -368,7 +448,7 @@
   }
 
   $("detect-title").addEventListener("click", function () {
-    var f = firstNonEmptyLine($("input").value);
+    var f = firstNonEmptyLine(stripTimestamps(stripOtterMetadata($("input").value)));
     if (!f) { showToast("No text to read a title from"); return; }
     $("title").value = f.text;
     // Non-destructive: the title line is left in place and only dropped from the
@@ -401,6 +481,9 @@
 
   // Parse a .docx ArrayBuffer into { text: one-paragraph-per-line, speakers: [] }.
   // Speakers are taken from fully-bold, name-shaped paragraphs (the usual layout).
+  // Otter.ai artefacts — a trailing "  0:00" timestamp on the name paragraph, the
+  // "SUMMARY KEYWORDS" heading + list paragraph, and the "Transcribed by
+  // https://otter.ai" footer — are dropped as each paragraph is read.
   function docxParse(arrayBuffer) {
     if (typeof fflate === "undefined") throw new Error("unzip library unavailable");
     var files = fflate.unzipSync(new Uint8Array(arrayBuffer));
@@ -409,7 +492,7 @@
     var xml = fflate.strFromU8(entry);
     var doc = new DOMParser().parseFromString(xml, "application/xml");
     var ps = doc.getElementsByTagName("w:p");
-    var lines = [], speakers = [];
+    var lines = [], speakers = [], skipNextParagraph = false;
     for (var i = 0; i < ps.length; i++) {
       var runs = ps[i].getElementsByTagName("w:r");
       var text = "", hasText = false, allBold = true;
@@ -422,6 +505,11 @@
       }
       text = text.trim();
       if (!text) continue;
+      if (skipNextParagraph) { skipNextParagraph = false; continue; } // the keyword list itself
+      if (SUMMARY_KEYWORDS_HEADING.test(text)) { skipNextParagraph = true; continue; }
+      if (OTTER_BRANDING.test(text)) continue;
+      text = stripLineTimestamp(text);
+      if (!text) continue; // paragraph was nothing but a bare timestamp
       lines.push(text);
       if (hasText && allBold && looksLikeName(text) && speakers.indexOf(text) === -1) {
         speakers.push(text);
@@ -438,6 +526,7 @@
       $("mode-interview").checked = true; $("speakers").value = found.join("\n");
     } else {
       $("mode-individual").checked = true;
+      if (found.length === 1) $("speakers").value = found[0]; // lets renderIndividual drop the repeated name lines
     }
     syncModeUI();
     showToast(label + " loaded" + (found.length >= 2 ? " \u00B7 " + found.length + " speakers found" : ""));
@@ -456,7 +545,7 @@
       };
       reader.readAsArrayBuffer(file);
     } else if (name.endsWith(".txt") || file.type === "text/plain") {
-      reader.onload = function () { afterLoad(reader.result, file.name); };
+      reader.onload = function () { afterLoad(stripTimestamps(stripOtterMetadata(reader.result)), file.name); };
       reader.readAsText(file);
     } else {
       showToast("Please choose a .docx or .txt file");
@@ -466,6 +555,11 @@
 
   syncModeUI();
 })();
+
+
+
+let text = document.lastModified;
+document.getElementById("datemod").innerHTML = text;
 </script>
 </body>
 </html>
