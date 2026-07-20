@@ -80,7 +80,6 @@
     background: #fbfbfd; color: var(--ink); resize: vertical;
   }
   textarea.code:focus { outline: 2px solid var(--wbs); outline-offset: 1px; border-color: var(--wbs); }
-  #output { white-space: pre; }
 
   .actions { display: flex; gap: 10px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
   button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; }
@@ -111,7 +110,7 @@
 <header>
   <h1>Petrock - A transcript formatter for TLE</h1>
   <p>Wraps a transcript in the standard accordion box and labels speakers — runs entirely in your browser, nothing is sent anywhere.</p>
-  <p><span class="versionInfo">Version 1.4.1 - <span id="datemod"></span></span><span class="versionInfo viDetail">Improved UI, added clear transcript button, moved to shared CSS palette, improved error handling.</span></p>
+  <p><span class="versionInfo">Version 1.4 - <span id="datemod"></span><span class="versionInfo viDetail">Improved detection of speaker names and hidden individual speaker detection button.</span></span></p>
 </header>
 
 <div class="wrap">
@@ -202,12 +201,14 @@
   }
 
   // ---- Otter.ai export cleanup -------------------------------------------
-  // Otter transcripts commonly carry three kinds of cruft that aren't part of
-  // the actual transcript: a trailing timestamp after each speaker's name
-  // (e.g. "Jodie Lucas  0:00"), a "SUMMARY KEYWORDS" block near the top, and a
-  // "Transcribed by https://otter.ai" branding footer. All three are stripped
-  // before formatting; none of this touches the pasted/uploaded source text
-  // as shown in the input box, only the working copy used to build the output.
+  // Otter transcripts commonly carry several kinds of cruft that aren't part
+  // of the actual transcript: a trailing timestamp after each speaker's name
+  // (e.g. "Jane Doe  0:00"), a date + duration header line (e.g. "Wed, Jul
+  // 15, 2026 3:46PM • 4:27"), a "SPEAKERS" heading with the list of names
+  // underneath it, a "SUMMARY KEYWORDS" block, and a "Transcribed by
+  // https://otter.ai" branding footer. All of this is stripped before
+  // formatting; none of it touches the pasted/uploaded source text as shown
+  // in the input box, only the working copy used to build the output.
 
   var TS_BARE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
   var TS_TRAILING = /^(.*?)\s{1,4}\d{1,2}:\d{2}(?::\d{2})?\s*$/;
@@ -230,16 +231,24 @@
 
   var OTTER_BRANDING = /^(transcribed\s+by\s+)?(https?:\/\/)?(www\.)?otter\.ai\/?\s*$/i;
   var SUMMARY_KEYWORDS_HEADING = /^summary\s+keywords\s*:?$/i;
+  var SPEAKERS_HEADING = /^speakers\s*:?$/i;
+  // Otter's date + duration header line, e.g. "Wed, Jul 15, 2026 3:46PM • 4:27".
+  // Matched generically — a time with AM/PM, a bullet, then a duration at the
+  // end of the line — so it isn't tied to one specific date format.
+  var OTTER_DATE_DURATION = /^.{0,60}?\d{1,2}:\d{2}\s*[AaPp]\.?[Mm]\.?\s*[•·]\s*\d{1,2}:\d{2}(?::\d{2})?\s*$/;
 
-  // Drops the "SUMMARY KEYWORDS" heading and the keyword list line that
-  // follows it (plus any blank lines around that pair), and drops the
-  // otter.ai branding footer line wherever it falls.
+  // Drops: the date/duration header line and branding footer (wherever they
+  // fall); the "SUMMARY KEYWORDS" heading plus the keyword list line after it;
+  // and the "SPEAKERS" heading plus the block of speaker-name lines Otter
+  // lists underneath it (any number of names, one per line).
   function stripOtterMetadata(text) {
     var lines = text.split(/\r?\n/);
     var out = [];
     var i = 0;
     while (i < lines.length) {
       var trimmed = lines[i].trim();
+
+      if (OTTER_DATE_DURATION.test(trimmed) || OTTER_BRANDING.test(trimmed)) { i++; continue; }
 
       if (SUMMARY_KEYWORDS_HEADING.test(trimmed)) {
         i++; // drop the heading itself
@@ -248,7 +257,14 @@
         while (i < lines.length && !lines[i].trim()) i++; // any blank line after that
         continue;
       }
-      if (OTTER_BRANDING.test(trimmed)) { i++; continue; }
+
+      if (SPEAKERS_HEADING.test(trimmed)) {
+        i++; // drop the heading itself
+        while (i < lines.length && !lines[i].trim()) i++; // blank line right after it, if any
+        while (i < lines.length && looksLikeName(lines[i].trim())) i++; // the listed speaker name(s)
+        while (i < lines.length && !lines[i].trim()) i++; // blank line(s) after that
+        continue;
+      }
 
       out.push(lines[i]);
       i++;
@@ -366,7 +382,7 @@
     $("speakers-hint").textContent = interview
       ? "One per line, or comma-separated. Used to split turns and bold each name when the speaker changes."
       : "If the transcript is prefixed with a name (e.g. \u201CName:\u201D), enter it here to strip the prefix. Leave blank otherwise.";
-    /*$("detect").style.display = interview ? "" : "none";*/
+    /* $("detect").style.display = interview ? "" : "none"; */
   }
   $("mode-interview").addEventListener("change", syncModeUI);
   $("mode-individual").addEventListener("change", syncModeUI);
@@ -481,9 +497,11 @@
 
   // Parse a .docx ArrayBuffer into { text: one-paragraph-per-line, speakers: [] }.
   // Speakers are taken from fully-bold, name-shaped paragraphs (the usual layout).
-  // Otter.ai artefacts — a trailing "  0:00" timestamp on the name paragraph, the
-  // "SUMMARY KEYWORDS" heading + list paragraph, and the "Transcribed by
-  // https://otter.ai" footer — are dropped as each paragraph is read.
+  // Otter.ai artefacts — the date/duration header line, a "SPEAKERS" heading and
+  // its name list, a "SUMMARY KEYWORDS" heading and its list, a trailing "  0:00"
+  // timestamp on the name paragraph, and the "Transcribed by https://otter.ai"
+  // footer — are all dropped, mirroring what stripOtterMetadata/stripTimestamps
+  // do for pasted text.
   function docxParse(arrayBuffer) {
     if (typeof fflate === "undefined") throw new Error("unzip library unavailable");
     var files = fflate.unzipSync(new Uint8Array(arrayBuffer));
@@ -492,7 +510,11 @@
     var xml = fflate.strFromU8(entry);
     var doc = new DOMParser().parseFromString(xml, "application/xml");
     var ps = doc.getElementsByTagName("w:p");
-    var lines = [], speakers = [], skipNextParagraph = false;
+
+    // First pass: one entry per non-empty paragraph, so the second pass can
+    // look ahead (needed for the "SPEAKERS" name list, which can be more than
+    // one paragraph long).
+    var paras = [];
     for (var i = 0; i < ps.length; i++) {
       var runs = ps[i].getElementsByTagName("w:r");
       var text = "", hasText = false, allBold = true;
@@ -505,15 +527,35 @@
       }
       text = text.trim();
       if (!text) continue;
-      if (skipNextParagraph) { skipNextParagraph = false; continue; } // the keyword list itself
-      if (SUMMARY_KEYWORDS_HEADING.test(text)) { skipNextParagraph = true; continue; }
-      if (OTTER_BRANDING.test(text)) continue;
-      text = stripLineTimestamp(text);
-      if (!text) continue; // paragraph was nothing but a bare timestamp
-      lines.push(text);
-      if (hasText && allBold && looksLikeName(text) && speakers.indexOf(text) === -1) {
-        speakers.push(text);
+      paras.push({ text: text, bold: hasText && allBold });
+    }
+
+    var lines = [], speakers = [];
+    var k = 0;
+    while (k < paras.length) {
+      var p = paras[k];
+
+      if (OTTER_DATE_DURATION.test(p.text) || OTTER_BRANDING.test(p.text)) { k++; continue; }
+
+      if (SUMMARY_KEYWORDS_HEADING.test(p.text)) {
+        k++; // drop the heading
+        if (k < paras.length) k++; // drop the keyword list paragraph
+        continue;
       }
+
+      if (SPEAKERS_HEADING.test(p.text)) {
+        k++; // drop the heading
+        while (k < paras.length && looksLikeName(paras[k].text)) k++; // the listed speaker name(s)
+        continue;
+      }
+
+      var cleaned = stripLineTimestamp(p.text);
+      if (!cleaned) { k++; continue; } // paragraph was nothing but a bare timestamp
+      lines.push(cleaned);
+      if (p.bold && looksLikeName(cleaned) && speakers.indexOf(cleaned) === -1) {
+        speakers.push(cleaned);
+      }
+      k++;
     }
     return { text: lines.join("\n"), speakers: speakers };
   }
@@ -555,8 +597,6 @@
 
   syncModeUI();
 })();
-
-
 
 let text = document.lastModified;
 document.getElementById("datemod").innerHTML = text;

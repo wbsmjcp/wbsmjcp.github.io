@@ -48,7 +48,11 @@ code {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 0 4px;
+  white-space: pre-wrap; 
+  overflow-wrap: break-word;
 }
+
+#output { white-space: pre-wrap; overflow-wrap: break-word; }
 
 /* --- Header & page shell ------------------------------------------------- */
 header { background: var(--wbs-dark); color: #fff; padding: 18px 24px; }
