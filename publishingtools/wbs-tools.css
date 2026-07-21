@@ -27,6 +27,7 @@
   --good-bg: #e9f6ef;      /* success surface */
   --good-border: #c7e7d4;  /* success border */
   --warn: #9a5b00;         /* warning text */
+  --check: #e8eaf7;        /* checkboard pattern */
   --radius: 10px;
   --font: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   --mono: ui-monospace, "Cascadia Code", Consolas, monospace;

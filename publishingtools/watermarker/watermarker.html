@@ -10,10 +10,10 @@
 
 <!-- Per-tool tweaks -->
 <style>
-  .layout { grid-template-columns: 300px 1fr; }
+  .layout { grid-template-columns: 250px 1fr; }
 
   /* --- Watermark swatch picker --------------------------------------- */
-  .wm-swatches { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .wm-swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .wm-swatches input { position: absolute; opacity: 0; pointer-events: none; }
   .wm-swatches label {
     display: block; cursor: pointer; text-align: center;
@@ -26,16 +26,17 @@
   .wm-swatch-thumb {
     width: 100%; aspect-ratio: 1; border-radius: 4px; margin-bottom: 4px;
     background-image:
-      linear-gradient(45deg, #e3e1e8 25%, transparent 25%),
-      linear-gradient(-45deg, #e3e1e8 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #e3e1e8 75%),
-      linear-gradient(-45deg, transparent 75%, #e3e1e8 75%);
+      linear-gradient(45deg, var(--check) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--check) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--check) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--check) 75%);
     background-size: 12px 12px;
     background-position: 0 0, 0 6px, 6px -6px, -6px 0;
-    background-color: #f8f8fa;
+    background-color: #ffffff;
     display: flex; align-items: center; justify-content: center;
   }
-  .wm-swatch-thumb img { width: 78%; height: 78%; object-fit: contain; }
+  .wm-swatch-thumb img { width: 78%; height: 78%; margin-top:10%; object-fit: contain;   -webkit-filter: drop-shadow(2px 2px 2px #979797);
+  filter: drop-shadow(1px 1px 1px #8f8f8f);}
   .wm-swatches label span { display: block; font-size: .72rem; color: var(--muted); font-weight: 600; }
 
   /* --- Corner picker --------------------------------------------------- */
@@ -112,7 +113,7 @@
 <header>
   <h1>Watermarker</h1>
   <p>Adds a scaled, unobtrusive watermark badge to one or more images — runs entirely in your browser, nothing is uploaded anywhere.</p>
-  <p><span class="versionInfo">Version 1.2 - <span id="datemod"></span> - New 'beta' tool - added new watermark.</span></p>
+  <p><span class="versionInfo">Version 1.2 - <span id="datemod"></span> New 'beta' tool - added new watermark and fixed UI.</span></p>
 </header>
 
 <div class="wrap">
