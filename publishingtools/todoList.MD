@@ -26,7 +26,7 @@
 * ~Add version number~
 * Remove 'Transcribed by Otter AI' default text when using Clipboard (also check txt/docx for formatting removal)
 * Filter out timestamps, should someone have copied or exported with time stamps enabled. (Maybe this is a button that can be pressed)
-* Auto-Check for unlabelled speakers
+* Auto-Check for unlabelled speakers for interviews (e.g. Speaker 1... ) - how is this being handled currently?
 * ~Add a 'clear' button~
 
 ## Varnisher - Parser and fixer for my.wbs source code
