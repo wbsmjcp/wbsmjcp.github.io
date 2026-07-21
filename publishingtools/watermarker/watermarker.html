@@ -113,34 +113,16 @@
 <header>
   <h1>Watermarker</h1>
   <p>Adds a scaled, unobtrusive watermark badge to one or more images — runs entirely in your browser, nothing is uploaded anywhere.</p>
-  <p><span class="versionInfo">Version 1.2 - <span id="datemod"></span> New 'beta' tool - added new watermark and fixed UI.</span></p>
+  <p><span class="versionInfo">Version 1.3 - <span id="datemod"></span> - Improved the handling of watermark options. </span></p>
 </header>
 
 <div class="wrap">
   <div class="layout">
     <aside class="panel" aria-label="Watermark options">
       <h2>Watermark badge</h2>
-      <div class="wm-swatches" role="radiogroup" aria-label="Watermark badge choice">
-        <input type="radio" name="wm" id="wm-light" value="light" checked>
-        <label for="wm-chunky">
-          <span class="wm-swatch-thumb"><img src="media/watermark-chunky-light.png" alt="Chunky light badge"></span>
-          <span>Chunky light</span>
-        </label>
-        <input type="radio" name="wm" id="wm-colour" value="colour">
-        <label for="wm-colour">
-          <span class="wm-swatch-thumb"><img src="media/watermark-colour.png" alt="Colour badge"></span>
-          <span>Colour</span>
-        </label>
-        <input type="radio" name="wm" id="wm-grey" value="grey">
-        <label for="wm-grey">
-          <span class="wm-swatch-thumb"><img src="media/watermark-grey.png" alt="Grey badge"></span>
-          <span>Grey</span>
-        </label>
-        <input type="radio" name="wm" id="wm-chunky" value="chunky">
-        <label for="wm-chunky">
-          <span class="wm-swatch-thumb"><img src="media/watermark-chunky-grey.png" alt="Chunky grey badge"></span>
-          <span>Chunky grey</span>
-        </label>
+      <p style="font-style: italic; font-size: 12px;">Slight shadow not included in the finished image</p>      
+      <div class="wm-swatches" id="wm-swatches" role="radiogroup" aria-label="Watermark badge choice">
+        <!-- Populated by buildSwatchUI() from WM_LIST below — single source of truth for filenames/labels. -->
       </div>
 
       <h2>Placement</h2>
@@ -159,19 +141,20 @@
       <h2>Sizing</h2>
       <div class="slider-field">
         <label for="size">Watermark size <span class="val" id="size-val">13%</span></label>
-        <input type="range" id="size" min="3" max="30" value="13" step="1">
+        <input type="range" id="size" min="3" max="30" step="1">
         <p class="hint">% of the image's shorter side — scales automatically so it looks the same size on any resolution.</p>
       </div>
       <div class="slider-field">
         <label for="margin">Edge margin <span class="val" id="margin-val">1%</span></label>
-        <input type="range" id="margin" min="0" max="10" value="1" step="0.5">
+        <input type="range" id="margin" min="0" max="10" step="0.5">
         <p class="hint">Gap between the badge and the image edge, also scaled.</p>
       </div>
       <div class="slider-field">
         <label for="opacity">Opacity <span class="val" id="opacity-val">80%</span></label>
-        <input type="range" id="opacity" min="5" max="100" value="80" step="5">
+        <input type="range" id="opacity" min="5" max="100" step="5">
         <p class="hint">Lower = more unobtrusive.</p>
       </div>
+      <button class="ghost small" id="reset-default" style="margin-inline: 25%;">Reset to default</button>
     </aside>
 
     <main>
@@ -204,51 +187,84 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-
+ 
   function showToast(msg) {
     var t = $("toast"); t.textContent = msg; t.classList.add("show");
     setTimeout(function () { t.classList.remove("show"); }, 1800);
   }
-
-  /* ---- Watermark badge images (preloaded once) --------------------------- */
-  var WM_SRC = {
-    colour: "media/watermark-colour.png",
-    grey: "media/watermark-grey.png",
-    chunky: "media/watermark-chunky-grey.png",
-    light: "media/watermark-chunky-light.png"
-  };
+  
+  var WM_LIST = [
+    { id: "light", src: "media/watermark-chunky-light.png", label: "Light grey chunky"},
+    { id: "colour", src: "media/watermark-colour.png", label: "Colour" },
+    { id: "grey", src: "media/watermark-grey.png", label: "Grey" },
+    { id: "chunky", src: "media/watermark-chunky-grey.png", label: "Chunky grey" }
+  ];
   var wmImages = {}; // id -> HTMLImageElement (loaded)
   var wmReady = false;
-
-  function preloadWatermarks(cb) {
-    var ids = Object.keys(WM_SRC), remaining = ids.length;
-    ids.forEach(function (id) {
-      var img = new Image();
-      img.onload = function () { wmImages[id] = img; if (--remaining === 0) { wmReady = true; cb(); } };
-      img.onerror = function () { showToast("Couldn't load watermark: " + WM_SRC[id]); if (--remaining === 0) { wmReady = true; cb(); } };
-      img.src = WM_SRC[id];
+ 
+  function buildSwatchUI() {
+    var container = $("wm-swatches");
+    WM_LIST.forEach(function (wm, i) {
+      var input = document.createElement("input");
+      input.type = "radio"; input.name = "wm"; input.id = "wm-" + wm.id; input.value = wm.id;
+      if (i === 0) input.checked = true;
+ 
+      var label = document.createElement("label");
+      label.setAttribute("for", "wm-" + wm.id);
+ 
+      var thumb = document.createElement("span");
+      thumb.className = "wm-swatch-thumb";
+      var img = document.createElement("img");
+      img.src = wm.src;
+      img.alt = wm.label + " badge";
+      thumb.appendChild(img);
+ 
+      var caption = document.createElement("span");
+      caption.textContent = wm.label;
+ 
+      label.appendChild(thumb);
+      label.appendChild(caption);
+      container.appendChild(input);
+      container.appendChild(label);
     });
   }
 
-  /* ---- Settings ------------------------------------------------------- */
+function preloadWatermarks(cb) {
+    var remaining = WM_LIST.length;
+    WM_LIST.forEach(function (wm) {
+      var img = new Image();
+      img.onload = function () { wmImages[wm.id] = img; if (--remaining === 0) { wmReady = true; cb(); } };
+      img.onerror = function () { showToast("Couldn't load watermark: " + wm.src); if (--remaining === 0) { wmReady = true; cb(); } };
+      img.src = wm.src;
+    });
+  }
+
+   /* ---- Settings ------------------------------------------------------- */
+   var DEFAULTS = {
+    size: 13,
+    margin: 1,
+    opacity: 80,
+    corner: "br"
+  };
+
   function getSettings() {
     var wmEl = document.querySelector('input[name="wm"]:checked');
     var cornerEl = document.querySelector('input[name="corner"]:checked');
     return {
-      wm: wmEl ? wmEl.value : "colour",
+      wm: wmEl ? wmEl.value : WM_LIST[0].id,
       corner: cornerEl ? cornerEl.value : "br",
       sizePct: parseFloat($("size").value),
       marginPct: parseFloat($("margin").value),
       opacityPct: parseFloat($("opacity").value)
     };
   }
-
+ 
   function syncSliderLabels() {
     $("size-val").textContent = $("size").value + "%";
     $("margin-val").textContent = $("margin").value + "%";
     $("opacity-val").textContent = $("opacity").value + "%";
   }
-
+ 
   /* ---- Core compositing: draws base image + watermark onto a canvas ---- */
   function compositeOnto(canvas, baseSource, baseW, baseH, settings) {
     canvas.width = baseW;
@@ -256,15 +272,15 @@
     var ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, baseW, baseH);
     ctx.drawImage(baseSource, 0, 0, baseW, baseH);
-
+ 
     var wmImg = wmImages[settings.wm];
     if (!wmImg) return;
-
+ 
     var shorter = Math.min(baseW, baseH);
     var wmW = shorter * (settings.sizePct / 100);
     var wmH = wmW * (wmImg.naturalHeight / wmImg.naturalWidth);
     var margin = shorter * (settings.marginPct / 100);
-
+ 
     var x, y;
     switch (settings.corner) {
       case "tl": x = margin; y = margin; break;
@@ -272,49 +288,49 @@
       case "bl": x = margin; y = baseH - margin - wmH; break;
       default:   x = baseW - margin - wmW; y = baseH - margin - wmH; break; // br
     }
-
+ 
     ctx.save();
     ctx.globalAlpha = settings.opacityPct / 100;
     ctx.drawImage(wmImg, x, y, wmW, wmH);
     ctx.restore();
   }
-
+ 
   /* ---- Image entries ---------------------------------------------------- */
   var entries = []; // { id, file, name, mime, img, naturalW, naturalH, previewCanvas }
   var nextId = 1;
-
+ 
   function extFor(mime) {
     if (mime === "image/jpeg") return "jpg";
     if (mime === "image/webp") return "webp";
     if (mime === "image/png") return "png";
     return "png"; // fallback (e.g. gif -> flattened png)
   }
-
+ 
   function outputMimeFor(originalMime) {
     // Keep original format where the canvas can export it; otherwise fall back to PNG.
     if (originalMime === "image/jpeg" || originalMime === "image/png" || originalMime === "image/webp") return originalMime;
     return "image/png";
   }
-
+ 
   function nameWithSuffix(name, mime) {
     var dot = name.lastIndexOf(".");
     var base = dot > -1 ? name.slice(0, dot) : name;
     return base + "-watermarked." + extFor(mime);
   }
-
+ 
   function renderPreview(entry) {
     var settings = getSettings();
     compositeOnto(entry.previewCanvas, entry.img, entry.previewW, entry.previewH, settings);
   }
-
+ 
   function renderAllPreviews() {
     entries.forEach(renderPreview);
   }
-
+ 
   function addFiles(fileList) {
     var files = Array.prototype.slice.call(fileList).filter(function (f) { return f.type.indexOf("image/") === 0; });
     if (!files.length) { showToast("No image files found in that selection"); return; }
-
+ 
     files.forEach(function (file) {
       var url = URL.createObjectURL(file);
       var img = new Image();
@@ -338,24 +354,24 @@
       img.src = url;
     });
   }
-
+ 
   function buildCard(entry) {
     var card = document.createElement("div");
     card.className = "img-card";
     card.id = "card-" + entry.id;
-
+ 
     var thumbWrap = document.createElement("div");
     thumbWrap.className = "thumb-wrap";
     thumbWrap.appendChild(entry.previewCanvas);
     card.appendChild(thumbWrap);
-
+ 
     var meta = document.createElement("div");
     meta.className = "meta";
     var kb = Math.round(entry.file.size / 1024);
     meta.innerHTML = '<span class="name">' + escapeHtml(entry.name) + '</span>' +
       entry.naturalW + '×' + entry.naturalH + 'px · ' + kb + ' KB';
     card.appendChild(meta);
-
+ 
     var actions = document.createElement("div");
     actions.className = "card-actions";
     var dlBtn = document.createElement("button");
@@ -367,23 +383,32 @@
     actions.appendChild(dlBtn);
     actions.appendChild(rmBtn);
     card.appendChild(actions);
-
+ 
     $("grid").appendChild(card);
   }
-
+ 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
 
+  function applyDefaults() {
+    $("size").value = DEFAULTS.size;
+    $("margin").value = DEFAULTS.margin;
+    $("opacity").value = DEFAULTS.opacity;
+    syncSliderLabels();
+    document.getElementById("corner-" + DEFAULTS.corner).checked = true;
+    document.getElementById("wm-" + WM_LIST[0].id).checked = true;
+  }
+ 
   function removeEntry(id) {
     entries = entries.filter(function (e) { return e.id !== id; });
     var card = $("card-" + id);
     if (card) card.remove();
     updateToolbar();
   }
-
+ 
   function updateToolbar() {
     var count = entries.length;
     $("count").textContent = count === 0 ? "No images added yet" :
@@ -396,21 +421,21 @@
         ' watermarked in the previews above.</strong> Adjust the options on the left — every preview updates live — then download individually or all at once.</div>';
     }
   }
-
+ 
   /* ---- Full-resolution export ------------------------------------------- */
   function renderFullRes(entry, settings) {
     var canvas = document.createElement("canvas");
     compositeOnto(canvas, entry.img, entry.naturalW, entry.naturalH, settings);
     return canvas;
   }
-
+ 
   function canvasToBlob(canvas, mime) {
     return new Promise(function (resolve) {
       var quality = mime === "image/jpeg" ? 0.92 : undefined;
       canvas.toBlob(function (blob) { resolve(blob); }, mime, quality);
     });
   }
-
+ 
   function downloadSingle(entry) {
     var settings = getSettings();
     var canvas = renderFullRes(entry, settings);
@@ -425,13 +450,13 @@
       showToast("Downloaded " + a.download);
     });
   }
-
+ 
   function downloadAll() {
     if (!entries.length) return;
     var settings = getSettings();
     $("download-all").disabled = true;
     $("download-all").textContent = "Zipping…";
-
+ 
     var usedNames = {};
     Promise.all(entries.map(function (entry) {
       var canvas = renderFullRes(entry, settings);
@@ -464,15 +489,18 @@
       $("download-all").textContent = "Download all (.zip)";
     });
   }
-
+ 
   /* ---- Wiring ------------------------------------------------------------ */
+  buildSwatchUI(); // must run before the querySelectorAll below, since it creates the wm radios
+  applyDefaults();
+ 
   ["size", "margin", "opacity"].forEach(function (id) {
     $(id).addEventListener("input", function () { syncSliderLabels(); renderAllPreviews(); });
   });
   document.querySelectorAll('input[name="wm"], input[name="corner"]').forEach(function (el) {
     el.addEventListener("change", renderAllPreviews);
   });
-
+ 
   $("dropzone").addEventListener("click", function () { $("file").click(); });
   $("dropzone").addEventListener("keydown", function (e) {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); }
@@ -490,6 +518,11 @@
     if (e.target.files.length) addFiles(e.target.files);
     e.target.value = "";
   });
+  $("reset-default").addEventListener("click", function(){
+    applyDefaults();
+    renderAllPreviews();
+    showToast("Reset to default");
+  });
 
   $("clear-all").addEventListener("click", function () {
     entries = [];
@@ -497,11 +530,11 @@
     updateToolbar();
   });
   $("download-all").addEventListener("click", downloadAll);
-
+ 
   syncSliderLabels();
   preloadWatermarks(function () { /* ready for first uploads */ });
 })();
-
+ 
 document.getElementById("datemod").innerHTML = document.lastModified;
 </script>
 </body>
