@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watermarker — learning-content tools</title>
+
+<!-- Shared theme. Keep wbs-tools.css in the SAME FOLDER as this file. -->
+<link rel="stylesheet" href="../wbs-tools.css">
+
+<!-- Per-tool tweaks -->
+<style>
+  .layout { grid-template-columns: 300px 1fr; }
+
+  /* --- Watermark swatch picker --------------------------------------- */
+  .wm-swatches { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .wm-swatches input { position: absolute; opacity: 0; pointer-events: none; }
+  .wm-swatches label {
+    display: block; cursor: pointer; text-align: center;
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px 8px;
+    background: #fff;
+  }
+  .wm-swatches input:checked + label {
+    border-color: var(--wbs); background: var(--wbs-tint); box-shadow: inset 0 0 0 1px var(--wbs);
+  }
+  .wm-swatch-thumb {
+    width: 100%; aspect-ratio: 1; border-radius: 4px; margin-bottom: 4px;
+    background-image:
+      linear-gradient(45deg, #e3e1e8 25%, transparent 25%),
+      linear-gradient(-45deg, #e3e1e8 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #e3e1e8 75%),
+      linear-gradient(-45deg, transparent 75%, #e3e1e8 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+    background-color: #f8f8fa;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wm-swatch-thumb img { width: 78%; height: 78%; object-fit: contain; }
+  .wm-swatches label span { display: block; font-size: .72rem; color: var(--muted); font-weight: 600; }
+
+  /* --- Corner picker --------------------------------------------------- */
+  .corner-picker {
+    position: relative; width: 150px; height: 104px; margin: 10px auto 22px;
+    border: 2px dashed var(--line); border-radius: 6px; background: #fafafa;
+  }
+  .corner-picker input { position: absolute; opacity: 0; pointer-events: none; }
+  .corner-picker .corner {
+    position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--line); background: #fff; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .corner-picker .corner:hover { border-color: var(--wbs); }
+  .corner-picker input:checked + .corner { border-color: var(--wbs); background: var(--wbs); }
+  .corner-tl { top: -11px; left: -11px; }
+  .corner-tr { top: -11px; right: -11px; }
+  .corner-bl { bottom: -11px; left: -11px; }
+  .corner-br { bottom: -11px; right: -11px; }
+  .corner-picker .cp-label {
+    position: absolute; bottom: 6px; left: 0; right: 0; text-align: center;
+    font-size: .72rem; color: var(--muted);
+  }
+
+  /* --- Sliders ----------------------------------------------------------- */
+  .slider-field { margin-bottom: 16px; }
+  .slider-field label { display: flex; justify-content: space-between; font-size: .82rem; font-weight: 600; margin-bottom: 4px; }
+  .slider-field label .val { color: var(--wbs-dark); font-weight: 700; }
+  .slider-field input[type=range] { width: 100%; accent-color: var(--wbs); }
+  .slider-field .hint { font-size: .74rem; color: var(--muted); margin: 2px 0 0; }
+
+  /* --- Drop zone ----------------------------------------------------------- */
+  .dropzone {
+    border: 2px dashed var(--line); border-radius: var(--radius); background: var(--panel);
+    padding: 28px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .dropzone.drag { border-color: var(--wbs); background: var(--wbs-tint); }
+  .dropzone p { margin: 0; color: var(--muted); font-size: .88rem; }
+  .dropzone strong { color: var(--wbs-dark); }
+  .dropzone .icon { font-size: 1.8rem; margin-bottom: 6px; opacity: .55; }
+
+  /* --- Image grid ------------------------------------------------------- */
+  .grid-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 10px; flex-wrap: wrap; gap: 8px; }
+  .grid-toolbar .count { font-size: .85rem; color: var(--muted); }
+  .img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .img-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .img-card .thumb-wrap {
+    background-image:
+      linear-gradient(45deg, #efeef2 25%, transparent 25%),
+      linear-gradient(-45deg, #efeef2 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #efeef2 75%),
+      linear-gradient(-45deg, transparent 75%, #efeef2 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-color: #fbfbfd;
+    display: flex; align-items: center; justify-content: center; min-height: 140px;
+  }
+  .img-card canvas { max-width: 100%; display: block; }
+  .img-card .meta { padding: 8px 10px; font-size: .74rem; color: var(--muted); border-top: 1px solid var(--line); }
+  .img-card .meta .name { color: var(--ink); font-weight: 600; font-size: .78rem; display: block; margin-bottom: 2px; word-break: break-all; }
+  .img-card .card-actions { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); }
+  .img-card .card-actions button { flex: 1; padding: 6px 8px; font-size: .74rem; }
+  .img-card .card-actions button.remove { flex: 0 0 auto; background: #fff; color: var(--warn); border-color: var(--line); }
+
+  input[type=file] { display: none; }
+
+  #summary .report .name-list { margin-top: 6px; font-size: .78rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Watermarker</h1>
+  <p>Adds a scaled, unobtrusive watermark badge to one or more images — runs entirely in your browser, nothing is uploaded anywhere.</p>
+  <p><span class="versionInfo">Version 1.0 - <span id="datemod"></span> - New 'beta' tool.</span></p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Watermark options">
+      <h2>Watermark badge</h2>
+      <div class="wm-swatches" role="radiogroup" aria-label="Watermark badge choice">
+        <input type="radio" name="wm" id="wm-colour" value="colour" checked>
+        <label for="wm-colour">
+          <span class="wm-swatch-thumb"><img src="media/watermark-colour.png" alt="Colour badge"></span>
+          <span>Colour</span>
+        </label>
+        <input type="radio" name="wm" id="wm-grey" value="grey">
+        <label for="wm-grey">
+          <span class="wm-swatch-thumb"><img src="media/watermark-grey.png" alt="Grey badge"></span>
+          <span>Grey</span>
+        </label>
+        <input type="radio" name="wm" id="wm-chunky" value="chunky">
+        <label for="wm-chunky">
+          <span class="wm-swatch-thumb"><img src="media/watermark-chunky-grey.png" alt="Chunky grey badge"></span>
+          <span>Chunky grey</span>
+        </label>
+      </div>
+
+      <h2>Placement</h2>
+      <div class="corner-picker" role="radiogroup" aria-label="Corner placement">
+        <input type="radio" name="corner" id="corner-tl" value="tl">
+        <label for="corner-tl" class="corner corner-tl" title="Top left"></label>
+        <input type="radio" name="corner" id="corner-tr" value="tr">
+        <label for="corner-tr" class="corner corner-tr" title="Top right"></label>
+        <input type="radio" name="corner" id="corner-bl" value="bl">
+        <label for="corner-bl" class="corner corner-bl" title="Bottom left"></label>
+        <input type="radio" name="corner" id="corner-br" value="br" checked>
+        <label for="corner-br" class="corner corner-br" title="Bottom right"></label>
+        <span class="cp-label">click a corner</span>
+      </div>
+
+      <h2>Sizing</h2>
+      <div class="slider-field">
+        <label for="size">Watermark size <span class="val" id="size-val">10%</span></label>
+        <input type="range" id="size" min="3" max="30" value="10" step="1">
+        <p class="hint">% of the image's shorter side — scales automatically so it looks the same size on any resolution.</p>
+      </div>
+      <div class="slider-field">
+        <label for="margin">Edge margin <span class="val" id="margin-val">3%</span></label>
+        <input type="range" id="margin" min="0" max="10" value="3" step="0.5">
+        <p class="hint">Gap between the badge and the image edge, also scaled.</p>
+      </div>
+      <div class="slider-field">
+        <label for="opacity">Opacity <span class="val" id="opacity-val">55%</span></label>
+        <input type="range" id="opacity" min="5" max="100" value="55" step="5">
+        <p class="hint">Lower = more unobtrusive.</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload images">
+        <div class="icon">⇪</div>
+        <p><strong>Click to choose images</strong> or drag &amp; drop them here</p>
+        <p>PNG, JPG or WebP — any number at once</p>
+      </div>
+      <input type="file" id="file" accept="image/*" multiple>
+
+      <div class="grid-toolbar">
+        <span class="count" id="count">No images added yet</span>
+        <div class="actions" style="margin:0">
+          <button class="ghost small" id="clear-all">Clear all</button>
+          <button class="primary-output" id="download-all" disabled>Download all (.zip)</button>
+        </div>
+      </div>
+
+      <div class="img-grid" id="grid"></div>
+
+      <div id="summary"><span class="empty">Add images above to get started.</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="fflate.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function showToast(msg) {
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  /* ---- Watermark badge images (preloaded once) --------------------------- */
+  var WM_SRC = {
+    colour: "media/watermark-colour.png",
+    grey: "media/watermark-grey.png",
+    chunky: "media/watermark-chunky-grey.png"
+  };
+  var wmImages = {}; // id -> HTMLImageElement (loaded)
+  var wmReady = false;
+
+  function preloadWatermarks(cb) {
+    var ids = Object.keys(WM_SRC), remaining = ids.length;
+    ids.forEach(function (id) {
+      var img = new Image();
+      img.onload = function () { wmImages[id] = img; if (--remaining === 0) { wmReady = true; cb(); } };
+      img.onerror = function () { showToast("Couldn't load watermark: " + WM_SRC[id]); if (--remaining === 0) { wmReady = true; cb(); } };
+      img.src = WM_SRC[id];
+    });
+  }
+
+  /* ---- Settings ------------------------------------------------------- */
+  function getSettings() {
+    var wmEl = document.querySelector('input[name="wm"]:checked');
+    var cornerEl = document.querySelector('input[name="corner"]:checked');
+    return {
+      wm: wmEl ? wmEl.value : "colour",
+      corner: cornerEl ? cornerEl.value : "br",
+      sizePct: parseFloat($("size").value),
+      marginPct: parseFloat($("margin").value),
+      opacityPct: parseFloat($("opacity").value)
+    };
+  }
+
+  function syncSliderLabels() {
+    $("size-val").textContent = $("size").value + "%";
+    $("margin-val").textContent = $("margin").value + "%";
+    $("opacity-val").textContent = $("opacity").value + "%";
+  }
+
+  /* ---- Core compositing: draws base image + watermark onto a canvas ---- */
+  function compositeOnto(canvas, baseSource, baseW, baseH, settings) {
+    canvas.width = baseW;
+    canvas.height = baseH;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, baseW, baseH);
+    ctx.drawImage(baseSource, 0, 0, baseW, baseH);
+
+    var wmImg = wmImages[settings.wm];
+    if (!wmImg) return;
+
+    var shorter = Math.min(baseW, baseH);
+    var wmW = shorter * (settings.sizePct / 100);
+    var wmH = wmW * (wmImg.naturalHeight / wmImg.naturalWidth);
+    var margin = shorter * (settings.marginPct / 100);
+
+    var x, y;
+    switch (settings.corner) {
+      case "tl": x = margin; y = margin; break;
+      case "tr": x = baseW - margin - wmW; y = margin; break;
+      case "bl": x = margin; y = baseH - margin - wmH; break;
+      default:   x = baseW - margin - wmW; y = baseH - margin - wmH; break; // br
+    }
+
+    ctx.save();
+    ctx.globalAlpha = settings.opacityPct / 100;
+    ctx.drawImage(wmImg, x, y, wmW, wmH);
+    ctx.restore();
+  }
+
+  /* ---- Image entries ---------------------------------------------------- */
+  var entries = []; // { id, file, name, mime, img, naturalW, naturalH, previewCanvas }
+  var nextId = 1;
+
+  function extFor(mime) {
+    if (mime === "image/jpeg") return "jpg";
+    if (mime === "image/webp") return "webp";
+    if (mime === "image/png") return "png";
+    return "png"; // fallback (e.g. gif -> flattened png)
+  }
+
+  function outputMimeFor(originalMime) {
+    // Keep original format where the canvas can export it; otherwise fall back to PNG.
+    if (originalMime === "image/jpeg" || originalMime === "image/png" || originalMime === "image/webp") return originalMime;
+    return "image/png";
+  }
+
+  function nameWithSuffix(name, mime) {
+    var dot = name.lastIndexOf(".");
+    var base = dot > -1 ? name.slice(0, dot) : name;
+    return base + "-watermarked." + extFor(mime);
+  }
+
+  function renderPreview(entry) {
+    var settings = getSettings();
+    compositeOnto(entry.previewCanvas, entry.img, entry.previewW, entry.previewH, settings);
+  }
+
+  function renderAllPreviews() {
+    entries.forEach(renderPreview);
+  }
+
+  function addFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList).filter(function (f) { return f.type.indexOf("image/") === 0; });
+    if (!files.length) { showToast("No image files found in that selection"); return; }
+
+    files.forEach(function (file) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var id = "img" + (nextId++);
+        var maxDim = 640;
+        var scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        var entry = {
+          id: id, file: file, name: file.name, mime: outputMimeFor(file.type),
+          img: img, naturalW: img.naturalWidth, naturalH: img.naturalHeight,
+          previewW: Math.round(img.naturalWidth * scale), previewH: Math.round(img.naturalHeight * scale),
+          previewCanvas: document.createElement("canvas")
+        };
+        entries.push(entry);
+        buildCard(entry);
+        renderPreview(entry);
+        updateToolbar();
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = function () { showToast("Couldn't read " + file.name); URL.revokeObjectURL(url); };
+      img.src = url;
+    });
+  }
+
+  function buildCard(entry) {
+    var card = document.createElement("div");
+    card.className = "img-card";
+    card.id = "card-" + entry.id;
+
+    var thumbWrap = document.createElement("div");
+    thumbWrap.className = "thumb-wrap";
+    thumbWrap.appendChild(entry.previewCanvas);
+    card.appendChild(thumbWrap);
+
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    var kb = Math.round(entry.file.size / 1024);
+    meta.innerHTML = '<span class="name">' + escapeHtml(entry.name) + '</span>' +
+      entry.naturalW + '×' + entry.naturalH + 'px · ' + kb + ' KB';
+    card.appendChild(meta);
+
+    var actions = document.createElement("div");
+    actions.className = "card-actions";
+    var dlBtn = document.createElement("button");
+    dlBtn.className = "ghost small"; dlBtn.textContent = "Download";
+    dlBtn.addEventListener("click", function () { downloadSingle(entry); });
+    var rmBtn = document.createElement("button");
+    rmBtn.className = "small remove"; rmBtn.textContent = "✕"; rmBtn.title = "Remove";
+    rmBtn.addEventListener("click", function () { removeEntry(entry.id); });
+    actions.appendChild(dlBtn);
+    actions.appendChild(rmBtn);
+    card.appendChild(actions);
+
+    $("grid").appendChild(card);
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function removeEntry(id) {
+    entries = entries.filter(function (e) { return e.id !== id; });
+    var card = $("card-" + id);
+    if (card) card.remove();
+    updateToolbar();
+  }
+
+  function updateToolbar() {
+    var count = entries.length;
+    $("count").textContent = count === 0 ? "No images added yet" :
+      count + " image" + (count === 1 ? "" : "s") + " ready";
+    $("download-all").disabled = count === 0;
+    if (count === 0) {
+      $("summary").innerHTML = '<span class="empty">Add images above to get started.</span>';
+    } else {
+      $("summary").innerHTML = '<div class="report"><strong>' + count + ' image' + (count === 1 ? "" : "s") +
+        ' watermarked in the previews above.</strong> Adjust the options on the left — every preview updates live — then download individually or all at once.</div>';
+    }
+  }
+
+  /* ---- Full-resolution export ------------------------------------------- */
+  function renderFullRes(entry, settings) {
+    var canvas = document.createElement("canvas");
+    compositeOnto(canvas, entry.img, entry.naturalW, entry.naturalH, settings);
+    return canvas;
+  }
+
+  function canvasToBlob(canvas, mime) {
+    return new Promise(function (resolve) {
+      var quality = mime === "image/jpeg" ? 0.92 : undefined;
+      canvas.toBlob(function (blob) { resolve(blob); }, mime, quality);
+    });
+  }
+
+  function downloadSingle(entry) {
+    var settings = getSettings();
+    var canvas = renderFullRes(entry, settings);
+    canvasToBlob(canvas, entry.mime).then(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = nameWithSuffix(entry.name, entry.mime);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      showToast("Downloaded " + a.download);
+    });
+  }
+
+  function downloadAll() {
+    if (!entries.length) return;
+    var settings = getSettings();
+    $("download-all").disabled = true;
+    $("download-all").textContent = "Zipping…";
+
+    var usedNames = {};
+    Promise.all(entries.map(function (entry) {
+      var canvas = renderFullRes(entry, settings);
+      return canvasToBlob(canvas, entry.mime).then(function (blob) {
+        return blob.arrayBuffer().then(function (buf) {
+          var name = nameWithSuffix(entry.name, entry.mime);
+          if (usedNames[name]) { usedNames[name]++; name = name.replace(/(\.[^.]+)$/, "-" + usedNames[name] + "$1"); }
+          else { usedNames[name] = 1; }
+          return { name: name, data: new Uint8Array(buf) };
+        });
+      });
+    })).then(function (files) {
+      var zipInput = {};
+      files.forEach(function (f) { zipInput[f.name] = f.data; });
+      var zipped = fflate.zipSync(zipInput, { level: 6 });
+      var blob = new Blob([zipped], { type: "application/zip" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "watermarked-images.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      showToast("Downloaded watermarked-images.zip (" + files.length + " images)");
+    }).catch(function (err) {
+      console.error(err);
+      showToast("Something went wrong creating the zip");
+    }).finally(function () {
+      $("download-all").disabled = entries.length === 0;
+      $("download-all").textContent = "Download all (.zip)";
+    });
+  }
+
+  /* ---- Wiring ------------------------------------------------------------ */
+  ["size", "margin", "opacity"].forEach(function (id) {
+    $(id).addEventListener("input", function () { syncSliderLabels(); renderAllPreviews(); });
+  });
+  document.querySelectorAll('input[name="wm"], input[name="corner"]').forEach(function (el) {
+    el.addEventListener("change", renderAllPreviews);
+  });
+
+  $("dropzone").addEventListener("click", function () { $("file").click(); });
+  $("dropzone").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); }
+  });
+  ["dragenter", "dragover"].forEach(function (evt) {
+    $("dropzone").addEventListener(evt, function (e) { e.preventDefault(); $("dropzone").classList.add("drag"); });
+  });
+  ["dragleave", "drop"].forEach(function (evt) {
+    $("dropzone").addEventListener(evt, function (e) { e.preventDefault(); $("dropzone").classList.remove("drag"); });
+  });
+  $("dropzone").addEventListener("drop", function (e) {
+    if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  $("file").addEventListener("change", function (e) {
+    if (e.target.files.length) addFiles(e.target.files);
+    e.target.value = "";
+  });
+
+  $("clear-all").addEventListener("click", function () {
+    entries = [];
+    $("grid").innerHTML = "";
+    updateToolbar();
+  });
+  $("download-all").addEventListener("click", downloadAll);
+
+  syncSliderLabels();
+  preloadWatermarks(function () { /* ready for first uploads */ });
+})();
+
+document.getElementById("datemod").innerHTML = document.lastModified;
+</script>
+</body>
+</html>
