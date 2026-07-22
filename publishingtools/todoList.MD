@@ -48,4 +48,5 @@
 * Fix previews
 * change boxes to be side by side and not stacked (reducing scroll) - should stack if screen width is significantly reduced
 * Tick option to allow header rows to be text-centred aligned
+* Auto create box from context (e.g. if copied from a draft, it can autodetect)
 
