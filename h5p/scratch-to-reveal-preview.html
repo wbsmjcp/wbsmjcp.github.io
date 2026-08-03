@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scratch to Reveal — panel workbench</title>
+<style>
+  :root {
+    --ground: #eae6ee;
+    --paper: #ffffff;
+    --ink: #1c1220;
+    --ink-soft: #6b5f70;
+    --plum: #4a1d3e;
+    --brass: #a87724;
+    --rule: #d2c8d6;
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 2.5rem 1.5rem 4rem;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: 1080px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--plum);
+    margin: 0 0 0.9rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.6rem;
+  }
+
+  h1 em { font-style: italic; color: var(--plum); }
+
+  .lede {
+    max-width: 46ch;
+    margin: 0 0 2.25rem;
+    color: var(--ink-soft);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 1.25rem;
+  }
+
+  /* Stage -------------------------------------------------------- */
+
+  .stage {
+    position: relative;
+    overflow: hidden;
+    background: #f3f0f4;
+    min-height: 140px;
+  }
+
+  .stage__content { position: relative; z-index: 1; }
+
+  .stage__content img { display: block; width: 100%; height: auto; }
+
+  .answer {
+    padding: 2.4rem 1.75rem;
+    font-family: var(--display);
+    font-size: 1.2rem;
+    line-height: 1.45;
+  }
+
+  .answer strong { color: var(--plum); }
+
+  canvas.cover {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 2;
+    display: block;
+    touch-action: none;
+    transition: opacity 380ms ease;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%23ffffff' stroke-width='2' opacity='0.85'/%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%23000000' stroke-width='2' opacity='0.5'/%3E%3C/svg%3E") 12 12, crosshair;
+  }
+
+  .stage.is-revealed canvas.cover { opacity: 0; pointer-events: none; }
+
+  /* Gauge: the signature element -------------------------------- */
+
+  .gauge { margin-top: 1.1rem; }
+
+  .gauge__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 0.4rem;
+  }
+
+  .gauge__value { color: var(--ink); font-size: 0.95rem; letter-spacing: 0; }
+
+  .gauge__track {
+    position: relative;
+    height: 8px;
+    background: #e4dee7;
+  }
+
+  .gauge__fill {
+    height: 100%;
+    width: 0;
+    background: var(--plum);
+    transition: width 90ms linear;
+  }
+
+  .gauge.is-past .gauge__fill { background: var(--brass); }
+
+  .gauge__tick {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    width: 2px;
+    background: var(--ink);
+    transform: translateX(-1px);
+  }
+
+  .gauge__tick::after {
+    content: attr(data-label);
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+
+  .gauge__legend {
+    margin-top: 1.6rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+  }
+
+  /* Buttons ------------------------------------------------------ */
+
+  .actions { display: flex; gap: 0.5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+
+  button {
+    min-height: 2.75rem;
+    padding: 0.5rem 1.4rem;
+    border: 2px solid var(--plum);
+    border-radius: 2rem;
+    background: var(--plum);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button.ghost { background: transparent; color: var(--plum); }
+
+  button:hover { background: #351029; border-color: #351029; color: #fff; }
+
+  button:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+  /* Control rail ------------------------------------------------- */
+
+  .rail h2 {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--plum);
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .field { margin-bottom: 1.1rem; }
+
+  .field > label,
+  .field > .field__label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .field__num { font-family: var(--mono); font-weight: 400; color: var(--plum); }
+
+  input[type="text"], select {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--rule);
+    background: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--ink);
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--plum); }
+
+  input[type="color"] {
+    width: 100%;
+    height: 2.4rem;
+    padding: 2px;
+    border: 1px solid var(--rule);
+    background: #fff;
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  .check { display: flex; align-items: center; gap: 0.55rem; font-size: 0.85rem; }
+
+  .check input { accent-color: var(--plum); width: 1.05rem; height: 1.05rem; }
+
+  input:focus-visible, select:focus-visible {
+    outline: 3px solid var(--brass);
+    outline-offset: 1px;
+  }
+
+  /* Handover strip ---------------------------------------------- */
+
+  .handover { margin-top: 1.5rem; }
+
+  .handover h2 {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--plum);
+    margin: 0 0 0.9rem;
+  }
+
+  .handover dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.9rem 1.5rem;
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  .handover dt { color: var(--ink-soft); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .handover dd { margin: 0.15rem 0 0; color: var(--ink); }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    canvas.cover, .gauge__fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <p class="eyebrow">H5P.ScratchToReveal 1.0 — workbench</p>
+  <h1>Tune the panel, <em>then</em> author it.</h1>
+  <p class="lede">This page runs the same canvas engine as the H5P library. Set the panel up here, read the numbers off the bottom strip, and type those into the H5P editor.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="stage" id="stage">
+          <div class="stage__content" id="content"></div>
+          <canvas class="cover" id="cover"></canvas>
+        </div>
+
+        <div class="gauge" id="gauge">
+          <div class="gauge__head">
+            <span>Scratched away</span>
+            <span class="gauge__value" id="pct">0%</span>
+          </div>
+          <div class="gauge__track">
+            <div class="gauge__fill" id="fill"></div>
+            <div class="gauge__tick" id="tick" data-label="reveal at 55%"></div>
+          </div>
+          <p class="gauge__legend">Threshold reached &rarr; the panel clears itself.</p>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="revealBtn">Reveal</button>
+          <button type="button" class="ghost" id="resetBtn">Scratch again</button>
+        </div>
+      </div>
+
+      <div class="card handover">
+        <h2>Values for the H5P editor</h2>
+        <dl>
+          <dt>Panel colour</dt><dd id="outColour">#5c6b7a</dd>
+          <dt>Label colour</dt><dd id="outLabelColour">#ffffff</dd>
+          <dt>Brush size</dt><dd id="outBrush">40</dd>
+          <dt>Reveal threshold</dt><dd id="outThreshold">55</dd>
+          <dt>Auto-clear</dt><dd id="outAuto">on</dd>
+          <dt>Sheen</dt><dd id="outSheen">on</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card rail">
+      <h2>Panel design</h2>
+
+      <div class="field">
+        <label for="hidden">Hidden content</label>
+        <select id="hidden">
+          <option value="text">Text</option>
+          <option value="image">Image</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="colour">Panel colour</label>
+          <input type="color" id="colour" value="#5c6b7a">
+        </div>
+        <div class="field">
+          <label for="labelColour">Label colour</label>
+          <input type="color" id="labelColour" value="#ffffff">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="label">Label on the panel</label>
+        <input type="text" id="label" value="Scratch to reveal the answer">
+      </div>
+
+      <div class="field">
+        <label for="labelSize">Label size</label>
+        <select id="labelSize">
+          <option value="small">Small</option>
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="field__label"><span>Brush size</span><span class="field__num" id="brushOut">40 px</span></span>
+        <input type="range" id="brush" min="10" max="150" step="1" value="40">
+      </div>
+
+      <div class="field">
+        <span class="field__label"><span>Reveal threshold</span><span class="field__num" id="thresholdOut">55%</span></span>
+        <input type="range" id="threshold" min="10" max="100" step="1" value="55">
+      </div>
+
+      <div class="field check">
+        <input type="checkbox" id="auto" checked>
+        <label for="auto">Clear the rest automatically</label>
+      </div>
+
+      <div class="field check">
+        <input type="checkbox" id="sheen" checked>
+        <label for="sheen">Scratch-card sheen</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SAMPLE_STRIDE = 6, CLEAR_ALPHA = 64, INTERVAL = 100;
+  var SIZES = { small: 0.035, medium: 0.05, large: 0.07 };
+
+  var stage = document.getElementById('stage');
+  var contentEl = document.getElementById('content');
+  var canvas = document.getElementById('cover');
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  var fill = document.getElementById('fill');
+  var tick = document.getElementById('tick');
+  var gauge = document.getElementById('gauge');
+  var pct = document.getElementById('pct');
+
+  var el = function (id) { return document.getElementById(id); };
+  var ui = {
+    hidden: el('hidden'), colour: el('colour'), labelColour: el('labelColour'),
+    label: el('label'), labelSize: el('labelSize'), brush: el('brush'),
+    threshold: el('threshold'), auto: el('auto'), sheen: el('sheen')
+  };
+
+  var state = { revealed: false, interacted: false, w: 0, h: 0, ratio: 1, last: 0 };
+
+  var IMAGE = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420">' +
+    '<rect width="800" height="420" fill="#f7f4f8"/>' +
+    '<g fill="#4a1d3e">' +
+    '<rect x="90" y="250" width="70" height="110"/><rect x="200" y="200" width="70" height="160"/>' +
+    '<rect x="310" y="150" width="70" height="210"/><rect x="420" y="120" width="70" height="240"/>' +
+    '</g><g fill="#a87724"><rect x="530" y="80" width="70" height="280"/><rect x="640" y="60" width="70" height="300"/></g>' +
+    '<line x1="60" y1="360" x2="750" y2="360" stroke="#1c1220" stroke-width="2"/>' +
+    '<text x="60" y="60" font-family="Georgia, serif" font-size="30" fill="#1c1220">Revenue by quarter</text>' +
+    '</svg>');
+
+  /* Hidden content ------------------------------------------------ */
+
+  function renderContent() {
+    if (ui.hidden.value === 'image') {
+      contentEl.innerHTML = '<img src="' + IMAGE + '" alt="Bar chart of revenue by quarter, rising each quarter.">';
+    }
+    else {
+      contentEl.innerHTML = '<div class="answer"><strong>Sunk cost fallacy.</strong> Money already spent is gone either way, ' +
+        'so it should play no part in the decision about what to do next.</div>';
+    }
+    requestAnimationFrame(function () { layout(true); });
+  }
+
+  /* Layout ------------------------------------------------------- */
+
+  function layout(force) {
+    var w = Math.round(stage.clientWidth);
+    var h = Math.round(Math.max(contentEl.offsetHeight, 140));
+    if (!w || !h) { return; }
+    if (!force && w === state.w && h === state.h) { return; }
+
+    var ratio = Math.min(window.devicePixelRatio || 1, 2);
+    var snap = null;
+    if (state.interacted && !state.revealed && canvas.width) {
+      snap = document.createElement('canvas');
+      snap.width = canvas.width; snap.height = canvas.height;
+      snap.getContext('2d').drawImage(canvas, 0, 0);
+    }
+
+    canvas.width = Math.round(w * ratio);
+    canvas.height = Math.round(h * ratio);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    state.w = w; state.h = h; state.ratio = ratio;
+
+    if (snap) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(snap, 0, 0, snap.width, snap.height, 0, 0, canvas.width, canvas.height);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+    else {
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      paint();
+    }
+  }
+
+  /* Painting ----------------------------------------------------- */
+
+  function paint() {
+    if (!state.w || !state.h) { return; }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, state.w, state.h);
+    ctx.fillStyle = ui.colour.value;
+    ctx.fillRect(0, 0, state.w, state.h);
+    if (ui.sheen.checked) { paintSheen(); }
+    paintLabel();
+  }
+
+  function paintSheen() {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 6;
+    for (var x = -state.h; x < state.w + state.h; x += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x, state.h);
+      ctx.lineTo(x + state.h, 0);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function paintLabel() {
+    var text = ui.label.value.trim();
+    if (!text) { return; }
+    var size = Math.max(13, Math.min(46, state.w * (SIZES[ui.labelSize.value] || SIZES.medium)));
+
+    ctx.save();
+    ctx.font = '600 ' + size + 'px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = ui.labelColour.value;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.28)';
+    ctx.shadowBlur = size / 6;
+    ctx.shadowOffsetY = 1;
+
+    var lines = wrap(text, state.w * 0.82);
+    var lh = size * 1.28;
+    var top = (state.h - (lines.length - 1) * lh) / 2;
+    lines.forEach(function (line, i) { ctx.fillText(line, state.w / 2, top + i * lh); });
+    ctx.restore();
+  }
+
+  function wrap(text, max) {
+    var words = text.split(/\s+/), lines = [], line = '';
+    words.forEach(function (word) {
+      var next = line ? line + ' ' + word : word;
+      if (ctx.measureText(next).width > max && line) { lines.push(line); line = word; }
+      else { line = next; }
+    });
+    if (line) { lines.push(line); }
+    return lines.slice(0, 4);
+  }
+
+  /* Scratching --------------------------------------------------- */
+
+  var drawing = false, prev = null;
+
+  function pos(event) {
+    var rect = canvas.getBoundingClientRect();
+    var src = event.touches ? event.touches[0] : event;
+    return {
+      x: (src.clientX - rect.left) * (state.w / rect.width),
+      y: (src.clientY - rect.top) * (state.h / rect.height)
+    };
+  }
+
+  function scratch(from, to) {
+    var brush = parseInt(ui.brush.value, 10);
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = brush;
+    ctx.lineCap = ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(to.x, to.y, brush / 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (state.revealed) { return; }
+    drawing = true; state.interacted = true;
+    prev = pos(e); scratch(prev, prev);
+    if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
+    e.preventDefault();
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    if (!drawing || state.revealed) { return; }
+    var p = pos(e); scratch(prev, p); prev = p;
+    if (Date.now() - state.last > INTERVAL) { state.last = Date.now(); measure(); }
+    e.preventDefault();
+  });
+
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (type) {
+    canvas.addEventListener(type, function () {
+      if (!drawing) { return; }
+      drawing = false; prev = null; measure();
+    });
+  });
+
+  /* Progress ----------------------------------------------------- */
+
+  function measure() {
+    if (state.revealed || !canvas.width) { return; }
+    var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    var total = 0, cleared = 0, step = 4 * SAMPLE_STRIDE;
+    for (var i = 3; i < data.length; i += step) {
+      total++;
+      if (data[i] < CLEAR_ALPHA) { cleared++; }
+    }
+    var value = total ? (cleared / total) * 100 : 0;
+    setGauge(value);
+    if (value >= parseInt(ui.threshold.value, 10)) { reveal(); }
+  }
+
+  function setGauge(value) {
+    fill.style.width = Math.min(100, value) + '%';
+    pct.textContent = Math.round(value) + '%';
+    gauge.classList.toggle('is-past', value >= parseInt(ui.threshold.value, 10));
+  }
+
+  /* Reveal / reset ----------------------------------------------- */
+
+  function reveal() {
+    if (state.revealed) { return; }
+    state.revealed = true;
+    if (ui.auto.checked) { stage.classList.add('is-revealed'); }
+    setGauge(100);
+  }
+
+  function reset() {
+    state.revealed = false; state.interacted = false;
+    stage.classList.remove('is-revealed');
+    paint();
+    setGauge(0);
+  }
+
+  el('revealBtn').addEventListener('click', reveal);
+  el('resetBtn').addEventListener('click', reset);
+
+  /* Wiring ------------------------------------------------------- */
+
+  function syncReadouts() {
+    el('brushOut').textContent = ui.brush.value + ' px';
+    el('thresholdOut').textContent = ui.threshold.value + '%';
+    tick.style.left = ui.threshold.value + '%';
+    tick.setAttribute('data-label', 'reveal at ' + ui.threshold.value + '%');
+    el('outColour').textContent = ui.colour.value;
+    el('outLabelColour').textContent = ui.labelColour.value;
+    el('outBrush').textContent = ui.brush.value;
+    el('outThreshold').textContent = ui.threshold.value;
+    el('outAuto').textContent = ui.auto.checked ? 'on' : 'off';
+    el('outSheen').textContent = ui.sheen.checked ? 'on' : 'off';
+  }
+
+  ['colour', 'labelColour', 'label', 'labelSize', 'sheen'].forEach(function (key) {
+    ui[key].addEventListener('input', function () { reset(); syncReadouts(); });
+  });
+  ui.brush.addEventListener('input', syncReadouts);
+  ui.threshold.addEventListener('input', syncReadouts);
+  ui.auto.addEventListener('input', syncReadouts);
+  ui.hidden.addEventListener('input', function () { renderContent(); reset(); });
+
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(function () { layout(); }).observe(contentEl);
+  }
+  else {
+    window.addEventListener('resize', function () { layout(); });
+  }
+
+  renderContent();
+  syncReadouts();
+})();
+</script>
+</body>
+</html>
