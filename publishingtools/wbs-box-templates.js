@@ -86,10 +86,10 @@
       iconDiv,
       "</div>",
       '<div class="wbs-lu-activityinner clearfix">',
-      '<div class="wbs-lu-activity-title tinymce-wbs-protected">',
+      '<div class="wbs-lu-activity-title tinymce-wbs-protected" style="font-variant-ligatures: no-common-ligatures;">',
       "<p>" + esc(o.title || "Title of Activity") + "</p>",
       "</div>",
-      '<div class="wbs-lu-activityinner-2 clearfix wbs-lu-activity-description tinymce-wbs-protected">',
+      '<div class="wbs-lu-activityinner-2 clearfix wbs-lu-activity-description tinymce-wbs-protected" style="font-variant-ligatures: no-common-ligatures;">',
       paras(o.content, null),
       "</div>",
       "</div>",
@@ -130,13 +130,24 @@
   }
 
   // --- TLE image icon HTML (used when "Use TLE images" is ticked) ----------
-  var TLE_ICONS = {
+/*  var TLE_ICONS = {
     poll:         '<div class="icon"><img src="/rafile/i/1492044/v/33/f/15/23A2B29E-D2DD-CCCF-8275336CC1ADD508.png" alt="" width="18" height="18"></div>',
     exercise:     '<div class="icon"><img src="/rafile/i/1492044/v/33/f/14/DF93579D-9611-E338-ABA7CB0AB327ABAC.png" alt="" width="21" height="27"></div>',
     photowall:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/13/DF920AB1-F2C3-12BC-AB61E4959521E020.png" alt="" width="21" height="27"></div>',
     stopthink:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/12/DF90945A-9D79-0C09-E8DC4CE87DC9C2F9.png" alt="" width="21" height="27"></div>',
     guidedread:   '<div class="icon"><img src="/rafile/i/1622788/v/6/f/15/2AD403C0-CDC8-BCE5-FE5BEBAD3783C583.png" alt="" width="21" height="27"></div>',
     wbslive:      '<div class="icon"><img src="/rafile/i/1492044/v/33/f/19/2A90E513-DB70-9860-643AD1EFFBD52569.png" alt="" width="21" height="21"></div>'
+  };*/
+
+ var TLE_ICONS = {
+    poll:           '<div class="icon"><img src="images/poll.png" alt="" width="18" height="18"></div>',
+    exercise:       '<div class="icon"><img src="images/exercise.png" alt="" width="21" height="27"></div>',
+    photowall:      '<div class="icon"><img src="images/photowall.png" alt="" width="21" height="27"></div>',
+    stopthink:      '<div class="icon"><img src="images/stopandthink.png" alt="" width="21" height="27"></div>',
+    guidedread:     '<div class="icon"><img src="images/guidedreading.png" alt="" width="21" height="27"></div>',
+    libraryreading: '<div class="icon"><img src="images/libraryreading.png" alt="" width="21" height="27"></div>',
+    webreading:     '<div class="icon"><img src="images/webreading.png" alt="" width="21" height="27"></div>',
+    wbslive:        '<div class="icon"><img src="images/wbslive.png" alt="" width="21" height="21"></div>'
   };
 
   // --- Template definitions ------------------------------------------------
@@ -204,11 +215,11 @@
 
     { id: "read-library", name: "Guided reading — library", family: "activity", keywords: ["library reading", "library"], icon: "fa fa-university",
       params: { label: "Library reading", icon: "fa fa-university", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
-        tleIconKey: "guidedread" } },
+        tleIconKey: "libraryreading" } },
 
     { id: "read-web", name: "Guided reading — web", family: "activity", keywords: ["web reading"], icon: "fa fa-globe",
       params: { label: "Web reading", icon: "fa fa-globe", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
-        tleIconKey: "guidedread" } },
+        tleIconKey: "webreading" } },
 
     { id: "read-case", name: "Guided reading — case study", family: "activity", keywords: ["case study"], icon: "fa fa-suitcase",
       params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",

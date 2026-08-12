@@ -8,18 +8,30 @@
    you can paste comp-example / mceTmpl rules into the marked section too.
    ========================================================================== */
 
+
+   @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+   @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
+.open-sans-condensed {
+  font-family: "Open Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 75;
+  font-weight: 700;
+  font-stretch: condensed;
+}
 /* --- Activity box: outer container -------------------------------------- */
 .wbs-lu-activity {
   position: relative;
   display: block;
   box-sizing: border-box;
   color: rgb(51, 51, 51);
-  font-family: "Open Sans", Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 22px;
   word-break: break-word;
   border: 0.555556px dashed rgb(221, 221, 221);
   margin: 42px 21px 28px 15px;
+  font-variant-ligatures: no-common-ligatures;
 }
 
 /* --- Label tab (protrudes top-left) ------------------------------------- */
@@ -36,6 +48,13 @@
   border-bottom-width: 10px;
   font-size: 14px;
   line-height: 22px;
+    font-family: "Open Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 50;
+  font-stretch: condensed;
 }
 
 /* dark chip behind the label's type text */
@@ -67,7 +86,25 @@
   padding: 30px 0 35px;
   text-align: center;
   color: rgb(51, 51, 51);
+  font-family: "Raleway", sans-serif;
 }
+/* --- Title Area ------------------------------------------------- */
+.wbs-lu-activityinner-title {
+  text-align:center;
+  font-family: "Raleway", sans-serif;
+}
+
+/* --- Inner 2 content area ------------------------------------------------- */
+.wbs-lu-activityinner-2 {
+  display: block;
+  box-sizing: border-box;
+  padding: 0 15px;
+  margin: 0 30px;
+  text-align: left;
+  color: rgb(51, 51, 51);
+  font-family: "Raleway", sans-serif;
+}
+
 
 /* --- Number tab (protrudes bottom-right) -------------------------------- */
 .wbs-lu-activity-number {
@@ -79,7 +116,13 @@
   background-color: rgb(31, 132, 104);   /* default; inline style overrides per box */
   color: #fff;
   border: 5px solid #fff;
-  font-family: "Open Sans Condensed", "Open Sans", Helvetica, Arial, sans-serif;
+  font-family: "Open Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+  font-variation-settings:
+    "wdth" 50;
+  font-stretch: ultra-condensed;
   font-size: 13px;
   line-height: 22px;
   padding: 2px 8px;
