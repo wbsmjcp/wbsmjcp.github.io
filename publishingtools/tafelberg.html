@@ -22,7 +22,7 @@
 <header>
   <h1>Tafelberg - Table Builder</h1>
   <p>Reformat a pasted table, build one from a spreadsheet, or start from a blank grid — then pick a style.</p>
-  <br>Version 1.3 - Fixed Blue 2 and Grey formatting mixup</br>
+  <p><span class="versionInfo">Version 1.3.1 - <span id="datemod"></span></span><span class="versionInfo viDetail">Minor fixes and added clear button.</span></p>
 </header>
 
 <div class="wrap">
@@ -94,7 +94,8 @@
       </div>
 
       <div class="actions">
-        <button class="primary" id="copy">Copy HTML</button>
+        <button class="primary primary-warn" id="clearBox">Clear input</button>
+        <button class="primary primary-output" id="copy">Copy HTML</button>
       </div>
 
       <div class="editor">
@@ -108,7 +109,7 @@
     </main>
   </div>
 </div>
-
+<footer>  <p>This is the Afrikaans name for "table mountain".</p></footer>
 <div class="toast" id="toast"></div>
 
 <!-- SheetJS (Excel) from CDN; CSV is parsed natively -->
@@ -277,6 +278,14 @@
     var out = $("output").value; if (!out) { showToast("Nothing to copy yet"); return; }
     navigator.clipboard.writeText(out).then(function () { showToast("HTML copied"); },
       function () { $("output").select(); document.execCommand("copy"); showToast("HTML copied"); });
+  });
+  $("clearBox").addEventListener("click", function () {
+    $("input").value = "";
+    $("paste-box").value = "";
+    $("file-status").textContent = "";
+    $("paste-status").textContent = "";
+    uploadedRows = null;
+    regen();
   });
 
   // Init

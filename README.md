@@ -16,7 +16,7 @@ They might be a bit wonky. I'll happily admit I'm not a coder by nature, but I c
 # Tools and projects
 
 * [Publishing Tools](publishingtools)
-* Others coming soon
+* [Watermarker](publishingtools/watermarker/watermarker.html) - Useful for everyone to help label their images as AI-generated.
 
 # Others in TLE
 

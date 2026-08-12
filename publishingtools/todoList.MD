@@ -22,20 +22,22 @@
 
 ## Petrock - Otter transcription fixer
 * Consider adding in slide references when slides change
-* Need to change the order of the buttons at the bottom (I can do that... not Claude), probably want COPY HTML to be the last button.
-* Add version number
+* ~Need to change the order of the buttons at the bottom (I can do that... not Claude), probably want COPY HTML to be the last button.~
+* ~Add version number~
 * Remove 'Transcribed by Otter AI' default text when using Clipboard (also check txt/docx for formatting removal)
 * Filter out timestamps, should someone have copied or exported with time stamps enabled. (Maybe this is a button that can be pressed)
-* Auto-Check for unlabelled speakers
+* Auto-Check for unlabelled speakers for interviews (e.g. Speaker 1... ) - how is this being handled currently?
+* ~Add a 'clear' button~
 
 ## Varnisher - Parser and fixer for my.wbs source code
 * Add in template boxes for fixing issues with those
 * Add a checker for rogue responsiveness spans `<span class="responsive-iframe-container" style="padding-bottom: 56.25%;">` which are used on text, thus causing a large grey boundary box to appear. 
 * Add a check that ensures that tables are surrounded by appropriate div tags and that divs tags aren't closed later than necessary.
+* Add a check for when 'table responsiveness' divs aren't being followed by a table. Ensure tables are also enclosed in 'table responsiveness divs'
 
 ## Southpaw - Box template creator
 * Add more CSS from my.wbs to improve previews (generic div box)
-* Fix ligatures in the boxes so they don't happen in future
+* Fix ligatures in the boxes so they don't happen in future - this might be a hard code issue in my.wbs, CSS stylisation can override - probably best to resolve with devs rather than trying to resolve ourselves. 
 * Add option to tidy and correct prior box templates (or integrate into the Varnisher)
 * Add image files for non-FA icon templates
 * Add upload file option for icons, with specifications for good image dimensions and properties.
@@ -46,4 +48,5 @@
 * Fix previews
 * change boxes to be side by side and not stacked (reducing scroll) - should stack if screen width is significantly reduced
 * Tick option to allow header rows to be text-centred aligned
+* Auto create box from context (e.g. if copied from a draft, it can autodetect)
 

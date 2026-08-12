@@ -114,11 +114,17 @@
     opacity: 0; pointer-events: none; transition: opacity .2s; }
   .toast.show { opacity: 1; }
 </style>
+<!-- Shared theme (keep wbs-tools.css in the same folder) — overrides the fallback above when present -->
+<link rel="stylesheet" href="wbs-tools.css">
+<!-- Font Awesome 4 for the preview -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
 </head>
 <body>
 <header>
-  <h1>Varnisher - A HTML cleaner - Version 1.2</h1>
-  <p>Strips Word/Office paste junk from learning-content HTML — runs entirely in your browser, nothing is sent anywhere.</p>
+  <h1>Varnisher - A HTML cleaner</h1>
+  <p>Strips random HTML junk, whitespace and incorrect formatting from learning-content HTML. <br> Plus, it runs entirely in your browser, no data is sent anywhere.</p>
+  <p><span class="versionInfo">Version 1.3 - <span id="datemod"></span></span><span class="versionInfo viDetail">Minor fixes.</span></p>
 </header>
 
 <div class="wrap">
@@ -213,7 +219,7 @@
     </main>
   </div>
 </div>
-
+<footer>  <p>Run this on every page's HTML to clean it up as part of the end publishing process.</p></footer>
 <div class="toast" id="toast"></div>
 
 <script>
