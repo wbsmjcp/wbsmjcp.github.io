@@ -10,7 +10,7 @@
      family: "activity" -> wbs-lu-activity style (coloured label + numbered footer)
 
    For anything unusual, give the template a render(content, opts) function
-   instead of params (see Formula and Prompt library below).
+   instead of params (see Formula and Prompt library below). 
    ========================================================================== */
 (function (global) {
   "use strict";
