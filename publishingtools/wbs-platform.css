@@ -85,16 +85,17 @@
   font-family: "Raleway", sans-serif;
 }
 /* --- Title Area ------------------------------------------------- */
-.wbs-lu-activityinner-title {
+.wbs-lu-activity-title {
     font-family: "Open Sans Condensed";
     color: #333;
-    font-weight: 400;
+    font-weight: 700;
     font-size: 18px;
     display: inline-block;
     padding-bottom: 4px;
     text-align: center;
     margin: 0 auto 10px !important;
     border-bottom: 1px solid #333;
+    line-height: 12px;
 }
 
 /* --- Inner 2 content area ------------------------------------------------- */
