@@ -8,9 +8,8 @@
    you can paste comp-example / mceTmpl rules into the marked section too.
    ========================================================================== */
 
-
    @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
-  @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wdth,wght@0,75..100,300..800;1,75..100,300..800&display=swap');
+   @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wdth,wght@0,75..100,300..800;1,75..100,300..800&display=swap');
 
 .open-sans-condensed {
   font-family: "Open Sans", sans-serif;
