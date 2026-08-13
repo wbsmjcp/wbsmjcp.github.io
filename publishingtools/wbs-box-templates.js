@@ -139,7 +139,7 @@
     wbslive:      '<div class="icon"><img src="/rafile/i/1492044/v/33/f/19/2A90E513-DB70-9860-643AD1EFFBD52569.png" alt="" width="21" height="21"></div>'
   };*/
 
- var TLE_ICONS = {
+ /* var TLE_ICONS = {
     poll:           '<div class="icon"><img src="images/poll.png" alt="" width="18" height="18"></div>',
     exercise:       '<div class="icon"><img src="images/exercise.png" alt="" width="21" height="27"></div>',
     photowall:      '<div class="icon"><img src="images/photowall.png" alt="" width="21" height="27"></div>',
@@ -148,6 +148,17 @@
     libraryreading: '<div class="icon"><img src="images/libraryreading.png" alt="" width="21" height="27"></div>',
     webreading:     '<div class="icon"><img src="images/webreading.png" alt="" width="21" height="27"></div>',
     wbslive:        '<div class="icon"><img src="images/wbslive.png" alt="" width="21" height="21"></div>'
+  }; */
+
+ var TLE_ICONS = {
+  poll:           '<div class="icon"><span class="icon icon-poll" aria-hidden="true"></span>&nbsp;</div>',
+  exercise:       '<div class="icon"><span class="icon icon-exercise" aria-hidden="true">&nbsp;</span></div>',
+  photowall:      '<div class="icon"><span class="icon icon-photowall" aria-hidden="true">&nbsp;</span></div>',
+  stopthink:      '<div class="icon"><span class="icon icon-stopthink" aria-hidden="true">&nbsp;</span></div>',
+  guidedread:     '<div class="icon"><span class="icon icon-guidedread" aria-hidden="true">&nbsp;</span></div>',
+  libraryreading: '<div class="icon"><span class="icon icon-libraryreading" aria-hidden="true">&nbsp;</span></div>',
+  webreading:     '<div class="icon"><span class="icon icon-webreading" aria-hidden="true">&nbsp;</span></div>',
+  wbslive:        '<div class="icon"><span class="icon icon-wbslive" aria-hidden="true">&nbsp;</span></div>'
   };
 
   // --- Template definitions ------------------------------------------------
@@ -222,8 +233,7 @@
         tleIconKey: "webreading" } },
 
     { id: "read-case", name: "Guided reading — case study", family: "activity", keywords: ["case study"], icon: "fa fa-suitcase",
-      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
-        tleIconKey: "guidedread" } },
+      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x", } },
 
     { id: "wbslive", name: "wbsLive", family: "activity", keywords: ["wbslive"], icon: "fa fa-video-camera",
       params: { label: "wbsLive", icon: "fa fa-video-camera", labelBg: "rgb(166,0,0)", numberPrefix: "wbsLive", refPlaceholder: "x",

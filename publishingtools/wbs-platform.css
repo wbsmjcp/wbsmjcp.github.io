@@ -11,6 +11,35 @@
    @import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wdth,wght@0,75..100,300..800;1,75..100,300..800&display=swap');
 
+/* Custom icons */
+
+:root {
+  --icon-size: 21px;   /* default, overridden per icon */
+}
+
+/* Shared behaviour — the only place you set positioning, repeat, etc. */
+.icon {
+  display: inline-block;
+  inline-size: var(--icon-w, var(--icon-size));
+  block-size: var(--icon-h, var(--icon-size));
+  flex: 0 0 auto;                 /* stops it squashing inside flex rows */
+       /* sits on the text baseline */
+  background-image: var(--icon-url);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Per-icon — only what differs */
+.icon-poll           { --icon-url: url("tleIcons/png/poll.png"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-exercise       { --icon-url: url("tleIcons/png/exercise.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-photowall      { --icon-url: url("tleIcons/png/photowall.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-stopthink      { --icon-url: url("tleIcons/png/stopandthink.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-guidedread     { --icon-url: url("tleIcons/png/textbookreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-libraryreading { --icon-url: url("tleIcons/png/libraryreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-webreading     { --icon-url: url("tleIcons/png/webreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+.icon-wbslive        { --icon-url: url("tleIcons/png/wbslive.png"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
+
 .open-sans-condensed {
   font-family: "Open Sans", sans-serif;
   font-optical-sizing: auto;
@@ -149,3 +178,4 @@
 .wbs-lu-comp-example .icon,
 .mceTmpl .icon { font-weight: 700; margin-bottom: 8px; }
 .wbs-lu-activity-ico { margin-right: 6px; }
+
