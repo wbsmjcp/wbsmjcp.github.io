@@ -39,7 +39,7 @@
 <header>
   <h1>Southpaw - A Box Builder for my.wbs</h1>
   <p>Generate a ready-to-paste WBS box. Pick a template or build your own — runs in your browser.</p>
-  <p>Version 1.4 - Improved preview rendering. Added my.wbs image icons to the icon set. Added Raleway font support.</p>
+  <p>Version 1.4.1 - Improved preview rendering. Added TLE custom my.wbs image icons to the icon set as SVGS. Added Raleway font support. Fixed SVG display issues, although still preview will look mildly different to actual my.wbs.</p>
 </header>
 
 <div class="wrap">
@@ -75,6 +75,12 @@
           <label class="inline-check"><input type="checkbox" id="tpl-tle-icons" checked> Use TLE images not icon set</label>
           <p class="hint">Swaps FA icons for the custom TLE image icons on supported activity boxes (poll, exercise, photo wall, stop&nbsp;&amp;&nbsp;think, wbsLive, guided&nbsp;reading).</p>
         </div>
+        <!--<div class="opt">
+          <input type="checkbox" id="opt-svg-icons">
+          <label for="opt-svg-icons">Use new SVG icon markup
+          <span class="desc">Temporary. Off = legacy <code>&lt;img&gt;</code> PNGs, matching the live site. Tick once the SVGs are uploaded to my.wbs.</span>
+          </label>
+        </div> -->
       </div>
 
       <!-- CREATE-NEW MODE -->
@@ -214,11 +220,13 @@
     if ($("new-border-on").checked) opts.border = { side: $("new-border-side").value, color: B.hexToRgb($("new-border-color").value) };
     return B.buildComp(opts);
   }
-  function regen() {
+function regen() {
+    /*opts.useTLE = tleChk.checked;*/
+    /*opts.tleSvg = svgOut.checked;*/
     var html = currentHtml();
     $("output").value = html;
     $("preview").srcdoc = previewDoc(html);
-  }
+}
 
   // Full document for the preview iframe: real platform CSS + fonts + FA4.
   // Relative hrefs resolve against this page's location (fine on GitHub Pages).
@@ -230,6 +238,7 @@
       '<style>html,body{margin:0}body{padding:24px;background:#fff;font-family:"Open Sans",Helvetica,Arial,sans-serif}</style>' +
       '</head><body>' + boxHtml + '</body></html>';
   }
+
 
   // --- Auto-detect template from pasted text ---
   function autoDetect() {

@@ -129,17 +129,9 @@
     ].join("\n");
   }
 
-  // --- TLE image icon HTML (used when "Use TLE images" is ticked) ----------
-/*  var TLE_ICONS = {
-    poll:         '<div class="icon"><img src="/rafile/i/1492044/v/33/f/15/23A2B29E-D2DD-CCCF-8275336CC1ADD508.png" alt="" width="18" height="18"></div>',
-    exercise:     '<div class="icon"><img src="/rafile/i/1492044/v/33/f/14/DF93579D-9611-E338-ABA7CB0AB327ABAC.png" alt="" width="21" height="27"></div>',
-    photowall:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/13/DF920AB1-F2C3-12BC-AB61E4959521E020.png" alt="" width="21" height="27"></div>',
-    stopthink:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/12/DF90945A-9D79-0C09-E8DC4CE87DC9C2F9.png" alt="" width="21" height="27"></div>',
-    guidedread:   '<div class="icon"><img src="/rafile/i/1622788/v/6/f/15/2AD403C0-CDC8-BCE5-FE5BEBAD3783C583.png" alt="" width="21" height="27"></div>',
-    wbslive:      '<div class="icon"><img src="/rafile/i/1492044/v/33/f/19/2A90E513-DB70-9860-643AD1EFFBD52569.png" alt="" width="21" height="21"></div>'
-  };*/
+  // --- TLE image icon HTML (used when "Use TLE images" is ticked) -------
 
- /* var TLE_ICONS = {
+  var TLE_ICONS_IMG = {
     poll:           '<div class="icon"><img src="images/poll.png" alt="" width="18" height="18"></div>',
     exercise:       '<div class="icon"><img src="images/exercise.png" alt="" width="21" height="27"></div>',
     photowall:      '<div class="icon"><img src="images/photowall.png" alt="" width="21" height="27"></div>',
@@ -148,18 +140,21 @@
     libraryreading: '<div class="icon"><img src="images/libraryreading.png" alt="" width="21" height="27"></div>',
     webreading:     '<div class="icon"><img src="images/webreading.png" alt="" width="21" height="27"></div>',
     wbslive:        '<div class="icon"><img src="images/wbslive.png" alt="" width="21" height="21"></div>'
-  }; */
-
- var TLE_ICONS = {
-  poll:           '<div class="icon"><span class="icon icon-poll" aria-hidden="true"></span>&nbsp;</div>',
-  exercise:       '<div class="icon"><span class="icon icon-exercise" aria-hidden="true">&nbsp;</span></div>',
-  photowall:      '<div class="icon"><span class="icon icon-photowall" aria-hidden="true">&nbsp;</span></div>',
-  stopthink:      '<div class="icon"><span class="icon icon-stopthink" aria-hidden="true">&nbsp;</span></div>',
-  guidedread:     '<div class="icon"><span class="icon icon-guidedread" aria-hidden="true">&nbsp;</span></div>',
-  libraryreading: '<div class="icon"><span class="icon icon-libraryreading" aria-hidden="true">&nbsp;</span></div>',
-  webreading:     '<div class="icon"><span class="icon icon-webreading" aria-hidden="true">&nbsp;</span></div>',
-  wbslive:        '<div class="icon"><span class="icon icon-wbslive" aria-hidden="true">&nbsp;</span></div>'
   };
+
+
+  var TLE_ICONS_SVG = {
+    poll:           '<div class="icon"><span class="icon icon-poll" aria-hidden="true">&nbsp;</span></div>',
+    exercise:       '<div class="icon"><span class="icon icon-exercise" aria-hidden="true">&nbsp;</span></div>',
+    photowall:      '<div class="icon"><span class="icon icon-photowall" aria-hidden="true">&nbsp;</span></div>',
+    stopthink:      '<div class="icon"><span class="icon icon-stopthink" aria-hidden="true">&nbsp;</span></div>',
+    guidedread:     '<div class="icon"><span class="icon icon-guidedread" aria-hidden="true">&nbsp;</span></div>',
+    libraryreading: '<div class="icon"><span class="icon icon-libraryreading" aria-hidden="true">&nbsp;</span></div>',
+    webreading:     '<div class="icon"><span class="icon icon-webreading" aria-hidden="true">&nbsp;</span></div>',
+    wbslive:        '<div class="icon"><span class="icon icon-wbslive" aria-hidden="true">&nbsp;</span></div>'
+  };
+
+  var TLE_ICONS = TLE_ICONS_SVG;
 
   // --- Template definitions ------------------------------------------------
   var TEMPLATES = [
@@ -266,6 +261,11 @@
         o.prefixColor = p.prefixColor;
         o.title = opts.title || p.titlePlaceholder || "Title (delete if not required)";
       }
+        // Swap in TLE icon markup when the flag is set and this template supports it
+    /*if (opts.useTLE && p.tleIconKey) {
+        var tleMap = opts.tleSvg ? TLE_ICONS_SVG : TLE_ICONS_IMG;
+        if (tleMap[p.tleIconKey]) actOpts.iconHtml = tleMap[p.tleIconKey];
+      }*/
       return buildComp(o);
     }
     // activity
@@ -314,6 +314,8 @@
     detect: detect,
     buildComp: buildComp,
     buildActivity: buildActivity,
+    /*tleIcons: { img: TLE_ICONS_IMG, svg: TLE_ICONS_SVG }, */
     hexToRgb: hexToRgb
+    
   };
 })(typeof window !== "undefined" ? window : this);

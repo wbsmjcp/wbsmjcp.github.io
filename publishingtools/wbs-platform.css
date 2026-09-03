@@ -17,8 +17,14 @@
   --icon-size: 21px;   /* default, overridden per icon */
 }
 
-/* Shared behaviour — the only place you set positioning, repeat, etc. */
 .icon {
+    display: inline-block;
+    margin: 0;
+    padding: 0 6px;
+}
+
+/* Custom icons global */
+.tle_icon {
   display: inline-block;
   inline-size: var(--icon-w, var(--icon-size));
   block-size: var(--icon-h, var(--icon-size));
@@ -28,17 +34,8 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+  overflow: visible;
 }
-
-/* Per-icon — only what differs */
-.icon-poll           { --icon-url: url("tleIcons/png/poll.png"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-exercise       { --icon-url: url("tleIcons/png/exercise.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-photowall      { --icon-url: url("tleIcons/png/photowall.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-stopthink      { --icon-url: url("tleIcons/png/stopandthink.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-guidedread     { --icon-url: url("tleIcons/png/textbookreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-libraryreading { --icon-url: url("tleIcons/png/libraryreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-webreading     { --icon-url: url("tleIcons/png/webreading.png"); --icon-w: 21px; --icon-h: 27px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
-.icon-wbslive        { --icon-url: url("tleIcons/png/wbslive.png"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(2px);}
 
 .open-sans-condensed {
   font-family: "Open Sans", sans-serif;
@@ -65,6 +62,8 @@
 /* --- Label tab (protrudes top-left) ------------------------------------- */
 .wbs-lu-activity-label {
   position: absolute;
+  height: auto;
+  width: auto;
   top: -22px;
   left: -22px;
   display: block;
@@ -72,8 +71,7 @@
   background-color: rgb(31, 132, 104);   /* default tab colour; inline style overrides per box */
   color: #fff;
   border: 5px solid #fff;
-  border-right-width: 7.77778px;
-  border-bottom-width: 10px;
+  border-width: 5px 8px 10px 5px; /*  top,  right,  bottom and  left */
   font-size: 14px;
   line-height: 22px;
     font-family: "Open Sans", sans-serif;
@@ -97,11 +95,27 @@
 }
 .wbs-lu-activity-label .text p { margin: 0; }
 
-/* icon sits on the coloured tab, next to the chip */
+/* --- Tab icon wrapper: plain, as it was before SVG icons -------------- */
 .wbs-lu-activity-label .icon {
   display: inline-block;
   color: #fff;
   padding: 0 6px;
+}
+
+/* --- SVG (TLE) mode: the element carrying the icon-* class paints the
+       SVG; its wrapper (if any) reserves the same box as before. Font
+       Awesome spans (wbs-lu-activity-ico fa fa-…) match neither.  ----- */
+.wbs-lu-activity-label [class*="icon-"],
+.wbs-lu-activity-label .icon:has([class*="icon-"]) {
+  display: inline-block;
+  inline-size: var(--icon-w, var(--icon-size));
+  block-size: var(--icon-h, var(--icon-size));
+  flex: 0 0 auto;
+  background-image: var(--icon-url);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  overflow: hidden;
 }
 
 /* --- Inner content area ------------------------------------------------- */
@@ -174,8 +188,20 @@
   padding: 14px 18px;
   margin: 12px 0;
   border-radius: 4px;
+  background-color: #FAFAFA;
+  border: 1px solid #EEE;
 }
 .wbs-lu-comp-example .icon,
 .mceTmpl .icon { font-weight: 700; margin-bottom: 8px; }
 .wbs-lu-activity-ico { margin-right: 6px; }
 
+/* Custom Icons */
+/* Per-icon SVG */
+.icon-poll           { --icon-url: url("tleIcons/svg/poll.svg"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(5px);}
+.icon-exercise       { --icon-url: url("tleIcons/svg/exercise.svg"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-8px) translateY(4px);}
+.icon-photowall      { --icon-url: url("tleIcons/svg/photowall.svg"); --icon-w: 20px; --icon-h: 20px; filter: invert(1); position: absolute; transform: translateX(-6px) translateY(5px);}
+.icon-stopthink      { --icon-url: url("tleIcons/svg/stopandthink.svg"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-6px) translateY(5px);}
+.icon-guidedread     { --icon-url: url("tleIcons/svg/textbookreading.svg"); --icon-w: 20px; --icon-h: 20px; filter: invert(1); position: absolute; transform: translateX(-6px) translateY(4px);}
+.icon-libraryreading { --icon-url: url("tleIcons/svg/libraryreading.svg"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-6px) translateY(5px);}
+.icon-webreading     { --icon-url: url("tleIcons/svg/webreading.svg"); --icon-w: 21px; --icon-h: 21px; filter: invert(1); position: absolute; transform: translateX(-7px) translateY(4px);}
+.icon-wbslive        { --icon-url: url("tleIcons/svg/wbslive.svg"); --icon-w: 20px; --icon-h: 20px; filter: invert(1); position: absolute; transform: translateX(-7px) translateY(5px);}
