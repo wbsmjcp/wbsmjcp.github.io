@@ -28,6 +28,10 @@
 * Filter out timestamps, should someone have copied or exported with time stamps enabled. (Maybe this is a button that can be pressed)
 * Auto-Check for unlabelled speakers for interviews (e.g. Speaker 1... ) - how is this being handled currently?
 * ~Add a 'clear' button~
+* Add support for uploading InDesign files and PDFs - Help to convert old transcripts quickly. 
+* Batch mode? - Useful for the above. 
+* Ability to alter speaker names - useful for if someone has left 'Speaker 1' instead of names, used initials, someone's name has changed since the transcript was first edited. 
+* Rebalance the buttons under the transcripts - Format button could be on the right. Upload button above/before the paste box. Wonder if a drag and drop into the paste box would also be useful. 
 
 ## Varnisher - Parser and fixer for my.wbs source code
 * Add in template boxes for fixing issues with those
