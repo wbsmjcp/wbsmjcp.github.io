@@ -50,6 +50,8 @@
 * ~Add auto-detect of pasted content (e.g. grab a title, select a box type, identify the box number if it exists)~
 * Add an 'auto-detect' button should it change - and also remove the 'auto-detected content' from the paste box being included in the final box code and preview.
 * Add standard wording for certain boxes and a tick box for 'gating' disclaimer.
+* Reconsider the design - improve the UI so that it works more logically. (e.g. the box type/reference number/title boxes could be above the 'paste' box. 
+* Move the copy HTML box to the right under the code. 
 
 ## Tafelburg - A Table creator
 * Fix previews
