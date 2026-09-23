@@ -42,10 +42,13 @@
 ## Southpaw - Box template creator
 * Add more CSS from my.wbs to improve previews (generic div box)
 * Fix ligatures in the boxes so they don't happen in future - this might be a hard code issue in my.wbs, CSS stylisation can override - probably best to resolve with devs rather than trying to resolve ourselves. 
+* Add tick box for ligatures - default is ON for no ligatures. 
 * Add option to tidy and correct prior box templates (or integrate into the Varnisher)
-* Add image files for non-FA icon templates
+* ~Add image files for non-FA icon templates~
+* Fix formatted code for 'TLE icons' so it doesn't use the proposed hard-coded solution that is sent to the devs. 
 * Add upload file option for icons, with specifications for good image dimensions and properties.
-* Add auto-detect of pasted content (e.g. grab a title, select a box type, identify the box number if it exists)
+* ~Add auto-detect of pasted content (e.g. grab a title, select a box type, identify the box number if it exists)~
+* Add an 'auto-detect' button should it change - and also remove the 'auto-detected content' from the paste box being included in the final box code and preview.
 * Add standard wording for certain boxes and a tick box for 'gating' disclaimer.
 
 ## Tafelburg - A Table creator
