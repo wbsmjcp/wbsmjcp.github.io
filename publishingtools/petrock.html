@@ -63,6 +63,18 @@
   .modes input:checked + label { border-color: var(--wbs); background: #f3eefa; color: var(--wbs-dark); box-shadow: inset 0 0 0 1px var(--wbs); }
   .modes label small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
 
+  .grouplabel { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 4px; }
+  .delims { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .delims input { position: absolute; opacity: 0; pointer-events: none; }
+  .delims label {
+    display: block; margin: 0; text-align: center; font-size: .95rem; font-weight: 700; line-height: 1.15;
+    cursor: pointer; border: 1px solid var(--line); border-radius: 8px; padding: 6px 4px; background: #fff;
+  }
+  .delims label small { display: block; font-size: .65rem; font-weight: 400; color: var(--muted); margin-top: 3px; }
+  .delims label.wide { grid-column: 1 / -1; }
+  .delims input:checked + label { border-color: var(--wbs); background: #f3eefa; color: var(--wbs-dark); box-shadow: inset 0 0 0 1px var(--wbs); }
+  #delim-custom { margin-top: 6px; }
+
   details.adv { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
   details.adv summary { font-size: .8rem; color: var(--wbs); cursor: pointer; font-weight: 600; }
   details.adv label { display: block; font-size: .75rem; color: var(--muted); margin: 10px 0 4px; }
@@ -80,6 +92,7 @@
     background: #fbfbfd; color: var(--ink); resize: vertical;
   }
   textarea.code:focus { outline: 2px solid var(--wbs); outline-offset: 1px; border-color: var(--wbs); }
+  #output { white-space: pre; }
 
   .actions { display: flex; gap: 10px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
   button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid transparent; }
@@ -110,7 +123,8 @@
 <header>
   <h1>Petrock - A transcript formatter for TLE</h1>
   <p>Wraps a transcript in the standard accordion box and labels speakers — runs entirely in your browser, nothing is sent anywhere.</p>
-  <p><span class="versionInfo">Version 1.4 - <span id="datemod"></span><span class="versionInfo viDetail">Improved detection of speaker names and hidden individual speaker detection button.</span></span></p>
+  <p>It's an Otter's best friend</p>
+  <p><span class="versionInfo">Version 1.4 - <span id="datemod"></span> </span></p>
 </header>
 
 <div class="wrap">
@@ -118,10 +132,10 @@
     <aside class="panel" aria-label="Formatting options">
       <h2>Transcript type</h2>
       <div class="modes">
-        <input type="radio" name="mode" id="mode-interview" value="interview">
-        <label for="mode-interview">Interview<small>two or more speakers</small></label>
         <input type="radio" name="mode" id="mode-individual" value="individual" checked>
         <label for="mode-individual">Individual<small>one speaker</small></label>
+      <input type="radio" name="mode" id="mode-interview" value="interview">
+        <label for="mode-interview">Interview<small>two or more speakers</small></label>
       </div>
 
       <h2>Details</h2>
@@ -136,6 +150,29 @@
         <label for="speakers" id="speakers-label">Speaker names</label>
         <p class="hint" id="speakers-hint">One per line, or comma-separated. Used to split turns and bold each name when the speaker changes.</p>
         <textarea id="speakers" placeholder="Lisa Weaver&#10;Jenny Lloyd"></textarea>
+
+        <div id="delim-field" role="group" aria-label="Name delimiter" style="margin-top:12px">
+          <span class="grouplabel">Name delimiter</span>
+          <p class="hint">What separates the name from the words in the <em>pasted</em> text. The output always uses &ldquo;Name:&rdquo; whichever you pick.</p>
+          <div class="delims">
+            <input type="radio" name="delim" id="delim-colon" value="colon" checked>
+            <label for="delim-colon">:<small>colon</small></label>
+            <input type="radio" name="delim" id="delim-hyphen" value="hyphen">
+            <label for="delim-hyphen">-<small>hyphen</small></label>
+            <input type="radio" name="delim" id="delim-endash" value="endash">
+            <label for="delim-endash">&ndash;<small>en dash</small></label>
+            <input type="radio" name="delim" id="delim-emdash" value="emdash">
+            <label for="delim-emdash">&mdash;<small>em dash</small></label>
+            <input type="radio" name="delim" id="delim-tab" value="tab">
+            <label for="delim-tab">&#8677;<small>tab</small></label>
+            <input type="radio" name="delim" id="delim-spaces" value="spaces">
+            <label for="delim-spaces">&middot;&nbsp;&middot;<small>2+ spaces</small></label>
+            <input type="radio" name="delim" id="delim-custom-radio" value="custom">
+            <label for="delim-custom-radio" class="wide">Custom<small>type it below</small></label>
+          </div>
+          <input type="text" id="delim-custom" aria-label="Custom delimiter" placeholder="e.g. |" style="display:none">
+        </div>
+
         <button class="ghost small" id="detect" style="margin-top:8px">Detect from transcript</button>
       </div>
 
@@ -173,7 +210,7 @@
     </main>
   </div>
 </div>
-<footer>  <p>It's an Otter's best friend</p></footer>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -200,88 +237,89 @@
     return /^[A-Z][A-Za-z.'’\-]*(?:\s+[A-Z][A-Za-z.'’\-]*){0,3}$/.test(s);
   }
 
-  // ---- Otter.ai export cleanup -------------------------------------------
-  // Otter transcripts commonly carry several kinds of cruft that aren't part
-  // of the actual transcript: a trailing timestamp after each speaker's name
-  // (e.g. "Jane Doe  0:00"), a date + duration header line (e.g. "Wed, Jul
-  // 15, 2026 3:46PM • 4:27"), a "SPEAKERS" heading with the list of names
-  // underneath it, a "SUMMARY KEYWORDS" block, and a "Transcribed by
-  // https://otter.ai" branding footer. All of this is stripped before
-  // formatting; none of it touches the pasted/uploaded source text as shown
-  // in the input box, only the working copy used to build the output.
+  // ---- Delimiters ---------------------------------------------------------
+  // What sits between the speaker's name and their words in the PASTED text.
+  // The output is always "<strong>Name:</strong> " regardless of what came in.
+  //   sep    - lenient pattern, used when splitting (the name is already known)
+  //   detect - stricter pattern, used when sniffing names out of raw text.
+  //            The dashes demand a space either side so hyphenated names
+  //            (Jean-Luc) aren't chopped in half.
+  var DELIMS = {
+    colon:  { key: "colon",  label: "colon",     sep: "[ \\t]*:[ \\t]*",       detect: "[ \\t]*:[ \\t]*" },
+    hyphen: { key: "hyphen", label: "hyphen",    sep: "[ \\t]*-[ \\t]*",       detect: "[ \\t]+-[ \\t]+" },
+    endash: { key: "endash", label: "en dash",   sep: "[ \\t]*\u2013[ \\t]*",  detect: "[ \\t]+\u2013[ \\t]+" },
+    emdash: { key: "emdash", label: "em dash",   sep: "[ \\t]*\u2014[ \\t]*",  detect: "[ \\t]+\u2014[ \\t]+" },
+    tab:    { key: "tab",    label: "tab",       sep: "[ ]*\\t+[ ]*",          detect: "[ ]*\\t+[ ]*" },
+    spaces: { key: "spaces", label: "2+ spaces", sep: "[ ]{2,}",               detect: "[ ]{2,}" }
+  };
+  // Order tried when auto-detecting; first past the post on a tie.
+  var DELIM_ORDER = ["colon", "tab", "hyphen", "endash", "emdash", "spaces"];
 
-  var TS_BARE = /^\d{1,2}:\d{2}(?::\d{2})?$/;
-  var TS_TRAILING = /^(.*?)\s{1,4}\d{1,2}:\d{2}(?::\d{2})?\s*$/;
+  // A name-shaped run at the start of a line. Words are separated by spaces
+  // only (never \s) so a tab can never be swallowed into the name.
+  // The trailing digits allow "Speaker 1"; the lookahead stops them eating the
+  // first half of a timestamp ("Jennifer 00:03:12" is Jennifer, not Jennifer 00).
+  var NAME = "[A-Z][A-Za-z.'\u2019\\-]*(?:[ ]+[A-Z][A-Za-z.'\u2019\\-]*){0,3}(?:[ ]+\\d{1,2}(?!\\d)(?!:\\d))?";
+  // Otter-style stamps: 0:34, 00:03:12, 1:02:03.4, and bracketed variants.
+  var TS  = "[\\[(]?\\d{1,2}:\\d{2}(?::\\d{2})?(?:[.,]\\d{1,3})?[\\])]?";
+  var TSB = "(?:[ \\t]*" + TS + ")?";        // stamp between the name and the delimiter
+  var TSA = "(?:" + TS + "[ \\t]*)?";        // stamp between the delimiter and the words
 
-  // Strips a trailing "  0:00" style timestamp from a single line. Only
-  // strips it when what's left looks like a name, so spoken text that happens
-  // to end in a real time (e.g. "...let's meet again at 3:45") is left alone.
-  // A line that is nothing but a bare timestamp is dropped entirely ("").
-  function stripLineTimestamp(line) {
-    var trimmed = line.trim();
-    if (TS_BARE.test(trimmed)) return "";
-    var m = trimmed.match(TS_TRAILING);
-    if (m && looksLikeName(m[1].trim())) return m[1].trim();
-    return line;
+  // Strip leading/trailing whitespace without touching tabs inside the line.
+  function tidyLine(raw) { return raw.replace(/^[ \t]+/, "").replace(/\s+$/, ""); }
+  function stripTrailingStamp(s) { return s.replace(new RegExp("[ \\t]*" + TS + "$"), "").replace(/\s+$/, ""); }
+
+  // The current delimiter as a {key,label,sep,detect} object.
+  function currentDelim() {
+    var key = radioValue("delim") || "colon";
+    if (key !== "custom") return DELIMS[key] || DELIMS.colon;
+    var raw = ($("delim-custom").value || "").trim();
+    if (!raw) return DELIMS.colon;
+    var pat = "[ \\t]*" + escapeRegex(raw) + "[ \\t]*";
+    return { key: "custom", label: "custom (" + raw + ")", sep: pat, detect: pat };
   }
 
-  function stripTimestamps(text) {
-    return text.split(/\r?\n/).map(stripLineTimestamp).join("\n");
+  // Scan one delimiter over the text: how many lines look like "Name<delim>words",
+  // and which names turn up.
+  function scanDelim(text, d) {
+    var re = new RegExp("^(" + NAME + ")" + TSB + d.detect + TSA);
+    var hits = 0, names = [];
+    text.split(/\r?\n/).forEach(function (raw) {
+      var line = tidyLine(raw);
+      if (!line) return;
+      var m = line.match(re);
+      if (!m) return;
+      var rest = line.slice(m[0].length);
+      // Real speech follows: not empty, not more whitespace (a tab we should
+      // have matched instead), not a stray digit left over from a timestamp.
+      if (!rest || /^[\s\d]/.test(rest)) return;
+      hits++;
+      if (names.indexOf(m[1]) === -1) names.push(m[1]);
+    });
+    return { hits: hits, names: names };
   }
 
-  var OTTER_BRANDING = /^(transcribed\s+by\s+)?(https?:\/\/)?(www\.)?otter\.ai\/?\s*$/i;
-  var SUMMARY_KEYWORDS_HEADING = /^summary\s+keywords\s*:?$/i;
-  var SPEAKERS_HEADING = /^speakers\s*:?$/i;
-  // Otter's date + duration header line, e.g. "Wed, Jul 15, 2026 3:46PM • 4:27".
-  // Matched generically — a time with AM/PM, a bullet, then a duration at the
-  // end of the line — so it isn't tied to one specific date format.
-  var OTTER_DATE_DURATION = /^.{0,60}?\d{1,2}:\d{2}\s*[AaPp]\.?[Mm]\.?\s*[•·]\s*\d{1,2}:\d{2}(?::\d{2})?\s*$/;
-
-  // Drops: the date/duration header line and branding footer (wherever they
-  // fall); the "SUMMARY KEYWORDS" heading plus the keyword list line after it;
-  // and the "SPEAKERS" heading plus the block of speaker-name lines Otter
-  // lists underneath it (any number of names, one per line).
-  function stripOtterMetadata(text) {
-    var lines = text.split(/\r?\n/);
-    var out = [];
-    var i = 0;
-    while (i < lines.length) {
-      var trimmed = lines[i].trim();
-
-      if (OTTER_DATE_DURATION.test(trimmed) || OTTER_BRANDING.test(trimmed)) { i++; continue; }
-
-      if (SUMMARY_KEYWORDS_HEADING.test(trimmed)) {
-        i++; // drop the heading itself
-        while (i < lines.length && !lines[i].trim()) i++; // any blank line right after it
-        if (i < lines.length) i++; // the keyword list line
-        while (i < lines.length && !lines[i].trim()) i++; // any blank line after that
-        continue;
-      }
-
-      if (SPEAKERS_HEADING.test(trimmed)) {
-        i++; // drop the heading itself
-        while (i < lines.length && !lines[i].trim()) i++; // blank line right after it, if any
-        while (i < lines.length && looksLikeName(lines[i].trim())) i++; // the listed speaker name(s)
-        while (i < lines.length && !lines[i].trim()) i++; // blank line(s) after that
-        continue;
-      }
-
-      out.push(lines[i]);
-      i++;
-    }
-    return out.join("\n");
+  // Which delimiter does this transcript actually use? Returns a key, or null
+  // if nothing scores well enough to be worth overriding the current choice.
+  function detectDelimiter(text) {
+    var best = null, bestHits = 1; // needs at least 2 labelled lines to win
+    DELIM_ORDER.forEach(function (key) {
+      var s = scanDelim(text, DELIMS[key]);
+      if (s.hits > bestHits) { bestHits = s.hits; best = key; }
+    });
+    return best;
   }
 
-  // Detect speakers from plain text via two signals:
-  //  - "Name:" labels at the start of a line (colon style), and
-  //  - a name-shaped line that stands alone and recurs (no-colon style).
-  function detectSpeakers(text) {
-    var colonRe = /^([A-Z][A-Za-z.'’\-]*(?:\s+[A-Z][A-Za-z.'’\-]*){0,3})\s*:\s+/;
-    var seen = [], counts = {}, lines = text.split(/\r?\n/);
-    lines.forEach(function (raw) {
-      var line = raw.trim();
-      var m = line.match(colonRe);
-      if (m) { if (seen.indexOf(m[1]) === -1) seen.push(m[1]); return; }
+  // Detect speakers via two signals:
+  //  - "Name<delimiter> words" at the start of a line, and
+  //  - a name-shaped line that stands alone and recurs (name-on-its-own-line style).
+  function detectSpeakers(text, d) {
+    d = d || currentDelim();
+    var seen = scanDelim(text, d).names.slice();
+    var counts = {};
+    text.split(/\r?\n/).forEach(function (raw) {
+      var line = stripTrailingStamp(tidyLine(raw));
+      if (!line || seen.indexOf(line) !== -1) return;
       if (looksLikeName(line)) counts[line] = (counts[line] || 0) + 1;
     });
     Object.keys(counts).forEach(function (name) {
@@ -291,26 +329,31 @@
   }
 
   // Break the transcript into ordered turns: { speaker, text }.
-  // Handles two layouts: "Name: speech" on one line, and a bare "Name" line
-  // (no colon) with the speech on the following line(s).
-  function splitTurns(text, speakers) {
-    var matchers = speakers.map(function (sp) {
-      return {
-        name: sp,
-        colon: new RegExp("^" + escapeRegex(sp) + "\\s*:\\s*", "i"),
-        bare: new RegExp("^" + escapeRegex(sp) + "\\s*$", "i")
-      };
-    });
+  // Handles two layouts: "Name<delimiter> speech" on one line, and a bare "Name"
+  // line with the speech on the following line(s). Any timestamp sitting either
+  // side of the delimiter is dropped.
+  function splitTurns(text, speakers, d) {
+    d = d || currentDelim();
+    // Longest names first, so "Jen" can't win a line belonging to "Jennifer".
+    var matchers = speakers.slice().sort(function (a, b) { return b.length - a.length; })
+      .map(function (sp) {
+        var n = escapeRegex(sp);
+        return {
+          name: sp,
+          head: new RegExp("^" + n + TSB + d.sep + TSA, "i"),
+          bare: new RegExp("^" + n + TSB + "$", "i")
+        };
+      });
     var turns = [], current = null;
     text.split(/\r?\n/).forEach(function (raw) {
-      var line = raw.trim();
+      var line = tidyLine(raw);
       if (!line) return;
 
-      // "Name: speech" — set speaker; the remainder (if any) is the first paragraph.
+      // "Name<delimiter> speech" — set speaker; the remainder (if any) is the first paragraph.
       for (var i = 0; i < matchers.length; i++) {
-        if (matchers[i].colon.test(line)) {
+        if (matchers[i].head.test(line)) {
           current = matchers[i].name;
-          var rest = line.replace(matchers[i].colon, "").trim();
+          var rest = line.replace(matchers[i].head, "").trim();
           if (rest) turns.push({ speaker: current, text: rest });
           return;
         }
@@ -342,20 +385,18 @@
     return { html: paras.join("\n"), paragraphs: paras.length, speakers: Object.keys(names) };
   }
 
-  function renderIndividual(text, stripName) {
-    var colonRe = stripName ? new RegExp("^" + escapeRegex(stripName) + "\\s*:\\s*", "i") : null;
-    // A line that's nothing but the speaker's own name — the label Otter repeats
-    // before every timestamped segment even for a single-speaker recording, and
-    // which is left bare once the timestamp itself has already been stripped.
-    var bareRe = stripName ? new RegExp("^" + escapeRegex(stripName) + "\\s*$", "i") : null;
-    var paras = text.split(/\r?\n/)
-      .map(function (l) { return l.trim(); })
-      .filter(Boolean)
-      .filter(function (line) { return !(bareRe && bareRe.test(line)); })
-      .map(function (line) {
-        if (colonRe) line = line.replace(colonRe, "");
-        return "<p>" + escapeHtml(line) + "</p>";
-      });
+  function renderIndividual(text, stripName, d) {
+    d = d || currentDelim();
+    var re = stripName ? new RegExp("^" + escapeRegex(stripName) + TSB + d.sep + TSA, "i") : null;
+    var stampOnly = new RegExp("^" + TS + "$");
+    var paras = [];
+    text.split(/\r?\n/).forEach(function (raw) {
+      var line = tidyLine(raw);
+      if (!line) return;
+      if (re) line = line.replace(re, "").trim();
+      if (!line || stampOnly.test(line)) return;
+      paras.push("<p>" + escapeHtml(line) + "</p>");
+    });
     return { html: paras.join("\n"), paragraphs: paras.length, speakers: [] };
   }
 
@@ -376,38 +417,73 @@
     setTimeout(function () { t.classList.remove("show"); }, 1800);
   }
 
+  function radioValue(name) {
+    var els = document.getElementsByName(name);
+    for (var i = 0; i < els.length; i++) if (els[i].checked) return els[i].value;
+    return null;
+  }
+  function setRadio(name, value) {
+    var els = document.getElementsByName(name);
+    for (var i = 0; i < els.length; i++) els[i].checked = (els[i].value === value);
+  }
+
+  // Single source of truth for the starting state, so Clear can reuse it.
+  function applyDelimDefaults() {
+    setRadio("delim", "colon");
+    $("delim-custom").value = "";
+    syncDelimUI();
+  }
+  function syncDelimUI() {
+    $("delim-custom").style.display = radioValue("delim") === "custom" ? "" : "none";
+  }
+  Array.prototype.forEach.call(document.getElementsByName("delim"), function (el) {
+    el.addEventListener("change", function () {
+      syncDelimUI();
+      if (radioValue("delim") === "custom") $("delim-custom").focus();
+    });
+  });
+
   function syncModeUI() {
     var interview = getMode() === "interview";
     $("speakers-label").textContent = interview ? "Speaker names" : "Speaker name (optional)";
     $("speakers-hint").textContent = interview
       ? "One per line, or comma-separated. Used to split turns and bold each name when the speaker changes."
       : "If the transcript is prefixed with a name (e.g. \u201CName:\u201D), enter it here to strip the prefix. Leave blank otherwise.";
-    /* $("detect").style.display = interview ? "" : "none"; */
+    $("detect").style.display = interview ? "" : "none";
   }
   $("mode-interview").addEventListener("change", syncModeUI);
   $("mode-individual").addEventListener("change", syncModeUI);
 
   $("detect").addEventListener("click", function () {
-    var found = detectSpeakers(stripTimestamps(stripOtterMetadata($("input").value)));
-    if (!found.length) { showToast("No \u201CName:\u201D labels found"); return; }
+    var text = $("input").value;
+    if (!text.trim()) { showToast("Paste a transcript first"); return; }
+    // Sniff the delimiter first and move the radio to match, so what you see
+    // is what Format will actually use.
+    var best = detectDelimiter(text);
+    if (best) { setRadio("delim", best); syncDelimUI(); }
+    var d = currentDelim();
+    var found = detectSpeakers(text, d);
+    if (!found.length) { showToast("No speaker labels found \u2014 try another delimiter"); return; }
     $("speakers").value = found.join("\n");
     if (found.length >= 2) { $("mode-interview").checked = true; syncModeUI(); }
-    showToast("Found " + found.length + " speaker" + (found.length === 1 ? "" : "s"));
+    showToast("Found " + found.length + " speaker" + (found.length === 1 ? "" : "s") +
+              " \u00B7 " + d.label + " delimiter");
   });
 
   $("format").addEventListener("click", function () {
     if (!$("input").value.trim()) { showToast("Paste a transcript first"); return; }
-    var src = stripTimestamps(stripOtterMetadata($("input").value));
-    src = stripTitleLine(src, $("title").value);
+    var src = stripTitleLine($("input").value, $("title").value);
+
+    var d = currentDelim();
 
     var result;
     if (getMode() === "interview") {
       var speakers = parseSpeakers($("speakers").value);
       if (!speakers.length) { showToast("Add speaker names, or use Detect"); return; }
-      result = renderInterview(splitTurns(src, speakers));
+      result = renderInterview(splitTurns(src, speakers, d));
     } else {
       var one = parseSpeakers($("speakers").value)[0] || "";
-      result = renderIndividual(src, one);
+      result = renderIndividual(src, one, d);
     }
 
     var out = wrap($("title").value, $("disclaimer").value, result.html);
@@ -416,6 +492,7 @@
     var chips = ['<span class="chip">' + (getMode() === "interview" ? "Interview" : "Individual") + '</span>',
                  '<span class="chip">' + result.paragraphs + ' paragraph' + (result.paragraphs === 1 ? "" : "s") + '</span>'];
     if (result.speakers.length) chips.push('<span class="chip">' + result.speakers.length + ' speakers labelled</span>');
+    if (getMode() === "interview") chips.push('<span class="chip">' + escapeHtml(d.label) + ' delimiter</span>');
     $("summary").innerHTML = '<div class="report"><strong>Formatted.</strong> Ready to paste into the editor.' +
       '<div class="chips">' + chips.join("") + '</div></div>';
   });
@@ -435,6 +512,7 @@
     $("speakers").value = "";
     $("output").value = "";
     $("summary").innerHTML = "";
+    applyDelimDefaults();
   });
 
   $("sample").addEventListener("click", function () {
@@ -451,6 +529,7 @@
 "Jenny Lloyd: When students come to university, it's all about the learning journey, and how they progress from one stage to the next.\n" +
 "Jenny Lloyd: If we don't provide them with that sort of clarity, consistency and detail, there isn't any indication that they know what to do by themselves.";
     $("speakers").value = "Lisa Weaver\nJenny Lloyd";
+    applyDelimDefaults();
     showToast("Sample loaded — now click Format transcript");
   });
 
@@ -464,7 +543,7 @@
   }
 
   $("detect-title").addEventListener("click", function () {
-    var f = firstNonEmptyLine(stripTimestamps(stripOtterMetadata($("input").value)));
+    var f = firstNonEmptyLine($("input").value);
     if (!f) { showToast("No text to read a title from"); return; }
     $("title").value = f.text;
     // Non-destructive: the title line is left in place and only dropped from the
@@ -497,11 +576,6 @@
 
   // Parse a .docx ArrayBuffer into { text: one-paragraph-per-line, speakers: [] }.
   // Speakers are taken from fully-bold, name-shaped paragraphs (the usual layout).
-  // Otter.ai artefacts — the date/duration header line, a "SPEAKERS" heading and
-  // its name list, a "SUMMARY KEYWORDS" heading and its list, a trailing "  0:00"
-  // timestamp on the name paragraph, and the "Transcribed by https://otter.ai"
-  // footer — are all dropped, mirroring what stripOtterMetadata/stripTimestamps
-  // do for pasted text.
   function docxParse(arrayBuffer) {
     if (typeof fflate === "undefined") throw new Error("unzip library unavailable");
     var files = fflate.unzipSync(new Uint8Array(arrayBuffer));
@@ -510,11 +584,7 @@
     var xml = fflate.strFromU8(entry);
     var doc = new DOMParser().parseFromString(xml, "application/xml");
     var ps = doc.getElementsByTagName("w:p");
-
-    // First pass: one entry per non-empty paragraph, so the second pass can
-    // look ahead (needed for the "SPEAKERS" name list, which can be more than
-    // one paragraph long).
-    var paras = [];
+    var lines = [], speakers = [];
     for (var i = 0; i < ps.length; i++) {
       var runs = ps[i].getElementsByTagName("w:r");
       var text = "", hasText = false, allBold = true;
@@ -527,48 +597,26 @@
       }
       text = text.trim();
       if (!text) continue;
-      paras.push({ text: text, bold: hasText && allBold });
-    }
-
-    var lines = [], speakers = [];
-    var k = 0;
-    while (k < paras.length) {
-      var p = paras[k];
-
-      if (OTTER_DATE_DURATION.test(p.text) || OTTER_BRANDING.test(p.text)) { k++; continue; }
-
-      if (SUMMARY_KEYWORDS_HEADING.test(p.text)) {
-        k++; // drop the heading
-        if (k < paras.length) k++; // drop the keyword list paragraph
-        continue;
+      lines.push(text);
+      if (hasText && allBold && looksLikeName(text) && speakers.indexOf(text) === -1) {
+        speakers.push(text);
       }
-
-      if (SPEAKERS_HEADING.test(p.text)) {
-        k++; // drop the heading
-        while (k < paras.length && looksLikeName(paras[k].text)) k++; // the listed speaker name(s)
-        continue;
-      }
-
-      var cleaned = stripLineTimestamp(p.text);
-      if (!cleaned) { k++; continue; } // paragraph was nothing but a bare timestamp
-      lines.push(cleaned);
-      if (p.bold && looksLikeName(cleaned) && speakers.indexOf(cleaned) === -1) {
-        speakers.push(cleaned);
-      }
-      k++;
     }
     return { text: lines.join("\n"), speakers: speakers };
   }
 
   function afterLoad(text, label, presetSpeakers) {
     $("input").value = text;
+    // Sniff the delimiter first — splitting needs it even when the names came
+    // from bold runs in the .docx rather than from the text itself.
+    var best = detectDelimiter(text);
+    if (best) { setRadio("delim", best); syncDelimUI(); }
     // Prefer speakers detected from the document (e.g. bold names); otherwise sniff the text.
-    var found = (presetSpeakers && presetSpeakers.length) ? presetSpeakers : detectSpeakers(text);
+    var found = (presetSpeakers && presetSpeakers.length) ? presetSpeakers : detectSpeakers(text, currentDelim());
     if (found.length >= 2) {
       $("mode-interview").checked = true; $("speakers").value = found.join("\n");
     } else {
       $("mode-individual").checked = true;
-      if (found.length === 1) $("speakers").value = found[0]; // lets renderIndividual drop the repeated name lines
     }
     syncModeUI();
     showToast(label + " loaded" + (found.length >= 2 ? " \u00B7 " + found.length + " speakers found" : ""));
@@ -587,7 +635,7 @@
       };
       reader.readAsArrayBuffer(file);
     } else if (name.endsWith(".txt") || file.type === "text/plain") {
-      reader.onload = function () { afterLoad(stripTimestamps(stripOtterMetadata(reader.result)), file.name); };
+      reader.onload = function () { afterLoad(reader.result, file.name); };
       reader.readAsText(file);
     } else {
       showToast("Please choose a .docx or .txt file");
@@ -595,8 +643,11 @@
     e.target.value = ""; // allow re-uploading the same file
   });
 
+  applyDelimDefaults();
   syncModeUI();
 })();
+
+
 
 let text = document.lastModified;
 document.getElementById("datemod").innerHTML = text;

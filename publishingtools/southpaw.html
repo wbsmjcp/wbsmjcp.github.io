@@ -21,6 +21,12 @@
   .swatch select { font: inherit; font-size: .82rem; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
   .inline-check { display: flex; gap: 8px; align-items: center; font-size: .82rem; font-weight: 600; }
   .inline-check input { width: 15px; height: 15px; accent-color: var(--wbs); }
+  .panel select.full { width: 100%; font: inherit; font-size: .85rem; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+  .field input[type=number] { width: 80px; font: inherit; font-size: .85rem; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+
+  /* Three-way icon source toggle (reuses .modes look, tighter) */
+  .modes.three { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; margin-bottom: 10px; }
+  .modes.three label { padding: 8px 4px; font-size: .78rem; }
 
   .icon-current { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); margin: 8px 0 6px; }
   .icon-current .fa { font-size: 1.1rem; color: var(--ink); width: 20px; text-align: center; }
@@ -29,6 +35,22 @@
   .icon-btn { border: 1px solid transparent; background: none; border-radius: 6px; padding: 8px 0; cursor: pointer; font-size: 1rem; color: var(--ink); }
   .icon-btn:hover { background: var(--wbs-tint); }
   .icon-btn.sel { border-color: var(--wbs); background: var(--wbs-tint); box-shadow: inset 0 0 0 1px var(--wbs); }
+
+  /* Title + reference row above the editors */
+  /* Section headings that open a wrapper still need the divider */
+  #tpl-opts > h2:first-child, #new-opts > h2:first-child, #lig-opts > h2:first-child {
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+  .meta { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 14px; }
+  @media (max-width: 720px) { .meta { grid-template-columns: 1fr; } }
+  .meta .field { margin-bottom: 0; }
+
+  /* Buttons under each editor */
+  .editor .actions { margin: 10px 0 0; }
+  button.detect { font-size: 1rem; padding: 12px 22px; }
+  .format-tip { font-size: .75rem; color: var(--muted); margin: 8px 0 0; }
+  #detect-note { font-size: .78rem; color: var(--good); margin: 8px 0 0; min-height: 1.2em; }
+  #detect-note.warn { color: var(--warn); }
 
   /* Faithful preview: an isolated iframe that loads the real platform CSS */
   #preview { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-height: 140px; display: block; }
@@ -39,7 +61,7 @@
 <header>
   <h1>Southpaw - A Box Builder for my.wbs</h1>
   <p>Generate a ready-to-paste WBS box. Pick a template or build your own — runs in your browser.</p>
-  <p>Version 1.4.1 - Improved preview rendering. Added TLE custom my.wbs image icons to the icon set as SVGS. Added Raleway font support. Fixed SVG display issues, although still preview will look mildly different to actual my.wbs.</p>
+  <p>Version 1.5.0 - Create new now builds Activity boxes as well as Boxes. Image-placeholder icons, and a Detect button that reads "Type: Title (x.x.x)" headers and strips them from the output.</p>
 </header>
 
 <div class="wrap">
@@ -57,17 +79,7 @@
       <div id="tpl-opts">
         <h2>Box type</h2>
         <div class="field">
-          <select id="tpl-select" style="width:100%; font:inherit; font-size:.85rem; padding:8px 10px; border:1px solid var(--line); border-radius:6px;"></select>
-        </div>
-        <div class="field">
-          <label for="tpl-ref">Reference number</label>
-          <p class="hint">Replaces the placeholder (e.g. 4.2.1). Optional.</p>
-          <input type="text" id="tpl-ref" placeholder="leave blank for x.x.x">
-        </div>
-        <div class="field">
-          <label for="tpl-title">Title</label>
-          <p class="hint">Optional — falls back to the template placeholder.</p>
-          <input type="text" id="tpl-title" placeholder="optional title">
+          <select id="tpl-select" class="full" aria-label="Box type"></select>
         </div>
 
         <h2>Settings</h2>
@@ -85,60 +97,131 @@
 
       <!-- CREATE-NEW MODE -->
       <div id="new-opts" style="display:none">
-        <h2>Appearance</h2>
-        <div class="field">
-          <label class="inline-check"><input type="checkbox" id="new-bg-on" checked> Background colour</label>
-          <div class="swatch"><input type="color" id="new-bg" value="#fff3e2"><span class="hint">box fill</span></div>
+        <h2>Kind</h2>
+        <div class="modes">
+          <input type="radio" name="kind" id="kind-box" value="box" checked>
+          <label for="kind-box">Box<small>generic comp box</small></label>
+          <input type="radio" name="kind" id="kind-activity" value="activity">
+          <label for="kind-activity">Activity<small>my.wbs activity</small></label>
         </div>
-        <div class="field">
-          <label class="inline-check"><input type="checkbox" id="new-border-on"> Side border</label>
-          <div class="swatch">
-            <select id="new-border-side"><option value="left">left</option><option value="right">right</option></select>
-            <input type="color" id="new-border-color" value="#208468">
+
+        <h2>Appearance</h2>
+        <div id="box-appearance">
+          <div class="field">
+            <label class="inline-check"><input type="checkbox" id="new-bg-on" checked> Background colour</label>
+            <div class="swatch"><input type="color" id="new-bg" value="#fff3e2"><span class="hint">box fill</span></div>
+          </div>
+          <div class="field">
+            <label class="inline-check"><input type="checkbox" id="new-border-on"> Side border</label>
+            <div class="swatch">
+              <select id="new-border-side"><option value="left">left</option><option value="right">right</option></select>
+              <input type="color" id="new-border-color" value="#208468">
+            </div>
+          </div>
+        </div>
+        <div id="act-appearance" style="display:none">
+          <div class="field">
+            <label class="inline-check"><input type="checkbox" id="act-col-on"> Custom colour</label>
+            <div class="swatch"><input type="color" id="act-col" value="#1f8468"><span class="hint">label &amp; number tabs</span></div>
+            <p class="hint" style="margin-top:6px">Unticked = no colour in the code, so my.wbs uses its default green.</p>
           </div>
         </div>
 
         <h2>Icon</h2>
-        <div class="icon-current">Selected: <span class="fa" id="icon-preview"></span> <code id="icon-name"></code></div>
-        <div class="field" style="margin-bottom:8px">
-          <input type="text" id="icon-search" placeholder="search icons (e.g. leaf, chart)…">
+        <div class="modes three" role="radiogroup" aria-label="Icon source">
+          <input type="radio" name="iconsrc" id="src-fa" value="fa" checked>
+          <label for="src-fa">Icon set</label>
+          <input type="radio" name="iconsrc" id="src-tle" value="tle">
+          <label for="src-tle" id="src-tle-label">TLE icon</label>
+          <input type="radio" name="iconsrc" id="src-img" value="image">
+          <label for="src-img">Image</label>
         </div>
-        <div class="icon-grid" id="icon-grid"></div>
+
+        <div id="icon-fa">
+          <div class="icon-current">Selected: <span class="fa" id="icon-preview"></span> <code id="icon-name"></code></div>
+          <div class="field" style="margin-bottom:8px">
+            <input type="text" id="icon-search" placeholder="search icons (e.g. leaf, chart)…" aria-label="Search icons">
+          </div>
+          <div class="icon-grid" id="icon-grid"></div>
+        </div>
+        <div id="icon-tle" style="display:none">
+          <div class="field">
+            <select id="tle-select" class="full" aria-label="TLE icon"></select>
+          </div>
+        </div>
+        <div id="icon-img" style="display:none">
+          <div class="field">
+            <label for="img-src">Image path</label>
+            <p class="hint">A placeholder <code>&lt;img&gt;</code>. After pasting into my.wbs, select it and upload your icon with TinyMCE's image dialog.</p>
+            <input type="text" id="img-src" value="images/your-icon.png">
+          </div>
+          <div class="field">
+            <label for="img-size">Size (px)</label>
+            <p class="hint">Sets width and height. Leave blank to omit.</p>
+            <input type="number" id="img-size" value="21" min="1" max="200">
+          </div>
+        </div>
 
         <h2>Label</h2>
         <div class="field">
           <label for="new-label">Label text</label>
-          <p class="hint">The bold lead-in, e.g. &ldquo;Key idea:&rdquo;. Optional.</p>
-          <input type="text" id="new-label" placeholder="e.g. Key idea:">
+          <p class="hint" id="new-label-hint">The bold lead-in, e.g. &ldquo;Key idea&rdquo;. The reference number is added after it.</p>
+          <input type="text" id="new-label" placeholder="e.g. Key idea">
         </div>
-        <div class="field">
-          <label for="new-title">Title</label>
-          <input type="text" id="new-title" placeholder="optional title">
+        <div class="field" id="num-prefix-field" style="display:none">
+          <label for="num-prefix">Number prefix</label>
+          <p class="hint">Shown before the reference in the bottom tab.</p>
+          <input type="text" id="num-prefix" value="Activity">
         </div>
       </div>
+
+      <!-- SHARED: activity output options -->
+      
+      <div id="lig-opts">
+        <h2>Activity output</h2>
+        <div class="field">
+          <label class="inline-check"><input type="checkbox" id="opt-nolig" checked> Disable ligatures (my.wbs default)</label>
+          <p class="hint">Ticked keeps <code>font-variant-ligatures: no-common-ligatures</code> on the title and body. Untick to strip it.</p>
+        </div>
+      </div>
+      
     </aside>
 
     <main>
+      <div class="meta">
+        <div class="field">
+          <label for="title">Title</label>
+          <input type="text" id="title" placeholder="optional, blank uses the placeholder">
+        </div>
+        <div class="field">
+          <label for="ref">Reference number</label>
+          <input type="text" id="ref" placeholder="e.g. 4.2.1">
+        </div>
+      </div>
+
       <div class="editors">
         <div class="editor">
           <h3>Your text <span class="tag">paste here</span></h3>
           <textarea id="input" class="code" spellcheck="false" placeholder="Paste the box text here. Blank lines start new paragraphs."></textarea>
+          <div class="actions">
+            <button class="primary-input detect" id="detect">Detect from your text</button>
+            <button class="ghost" id="clear">Clear</button>
+          </div>
+          <p id="detect-note" aria-live="polite"></p>
+          <p class="format-tip">Detect works best when your text starts with <code>Type: Title (x.x.x)</code>, e.g. <code>Stop and Think: Your organisation (3.2.1)</code>. That line is left in your text but removed from the output.</p>
         </div>
         <div class="editor">
           <h3>HTML to paste into TinyMCE <span class="tag">output</span></h3>
           <textarea id="output" class="code" spellcheck="false" readonly></textarea>
+          <div class="actions">
+            <button class="primary-output" id="copy">Copy HTML</button>
+          </div>
         </div>
       </div>
 
-      <div class="actions">
-        <button class="primary" id="copy">Copy HTML</button>
-        <span id="detect-note" class="hint" style="margin-left:4px"></span>
-      </div>
-
-      <h3 style="font-size:.85rem; margin:8px 0 6px;">Preview</h3>
+      <h3 style="font-size:.85rem; margin:20px 0 6px;">Preview</h3>
       <iframe id="preview" title="Box preview"></iframe>
-      <p class="caveat">Faithful preview — loads the platform stylesheet (<code>wbs-platform.css</code>) in an isolated frame, so it matches the published page. Re-copy that file from the site when the styling changes. <br> Please note the review will look slightly different to how it does on my.wbs</p>
-      
+      <p class="caveat">Faithful preview — loads the platform stylesheet (<code>wbs-platform.css</code>) in an isolated frame, so it matches the published page. Re-copy that file from the site when the styling changes. <br> Please note the preview will look slightly different to how it does on my.wbs. Image-placeholder icons show as a broken image here until the real icon is uploaded on my.wbs.</p>
     </main>
   </div>
 </div>
@@ -152,17 +235,31 @@
   var $ = function (id) { return document.getElementById(id); };
   var B = window.WBSBoxes;
   var selectedIcon = "fa fa-cube";
-  var userPicked = false;
+  var stripOn = false;   // set by Detect: remove the header line from the output
+  var toastTimer = null;
 
-  function showToast(msg) {
+  function showToast(msg, ms) {
     var t = $("toast"); t.textContent = msg; t.classList.add("show");
-    setTimeout(function () { t.classList.remove("show"); }, 1700);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, ms || 1700);
+  }
+  function note(msg, warn) {
+    $("detect-note").textContent = msg || "";
+    $("detect-note").className = warn ? "warn" : "";
   }
   function mode() { return $("mode-template").checked ? "template" : "new"; }
+  function kind() { return $("kind-activity").checked ? "activity" : "box"; }
+  function iconSrc() { return $("src-tle").checked ? "tle" : $("src-img").checked ? "image" : "fa"; }
+  function show(id, on) { $(id).style.display = on ? "" : "none"; }
+  function tplFamily() {
+    var id = $("tpl-select").value;
+    for (var i = 0; i < B.templates.length; i++) if (B.templates[i].id === id) return B.templates[i].family;
+    return "";
+  }
 
   // --- Populate template dropdown (grouped by family) ---
   (function fillSelect() {
-    var groups = { comp: "Comp-example boxes", activity: "Activity boxes" };
+    var groups = { comp: "General boxes", activity: "Activity boxes" };
     var sel = $("tpl-select");
     Object.keys(groups).forEach(function (fam) {
       var og = document.createElement("optgroup");
@@ -177,6 +274,16 @@
     sel.value = "example";
   })();
 
+  // --- Populate TLE icon dropdown ---
+  (function fillTle() {
+    var sel = $("tle-select");
+    B.tleList.forEach(function (t) {
+      var o = document.createElement("option");
+      o.value = t.key; o.textContent = t.label;
+      sel.appendChild(o);
+    });
+  })();
+
   // --- Build the icon picker grid ---
   function renderIconGrid(filter) {
     var grid = $("icon-grid");
@@ -187,6 +294,7 @@
       b.type = "button";
       b.className = "icon-btn" + ("fa fa-" + name === selectedIcon ? " sel" : "");
       b.title = name;
+      b.setAttribute("aria-label", name);
       b.innerHTML = '<span class="fa fa-' + name + '"></span>';
       b.addEventListener("click", function () {
         selectedIcon = "fa fa-" + name;
@@ -204,22 +312,49 @@
   }
 
   // --- Generate output + preview ---
+  function content() {
+    var text = $("input").value;
+    return stripOn ? B.stripHeader(text) : text;
+  }
+
   function currentHtml() {
-    var content = $("input").value;
+    var title = $("title").value.trim();
+    var ref = $("ref").value.trim();
+    var lig = $("opt-nolig").checked;
+
     if (mode() === "template") {
-      return B.build($("tpl-select").value, content, {
-        title: $("tpl-title").value.trim(),
-        reference: $("tpl-ref").value.trim(),
-        useTLE: $("tpl-tle-icons").checked
+      return B.build($("tpl-select").value, content(), {
+        title: title, reference: ref, useTLE: $("tpl-tle-icons").checked, ligStyle: lig
       });
     }
-    var opts = { content: content, icon: selectedIcon, prefix: $("new-label").value.trim() };
-    var ttl = $("new-title").value.trim();
-    if (ttl) opts.title = ttl;
-    if ($("new-bg-on").checked) opts.bg = B.hexToRgb($("new-bg").value);
-    if ($("new-border-on").checked) opts.border = { side: $("new-border-side").value, color: B.hexToRgb($("new-border-color").value) };
-    return B.buildComp(opts);
+
+    var label = $("new-label").value.trim();
+    var src = iconSrc();
+    var imgHtml = B.imgIcon($("img-src").value.trim(), $("img-size").value);
+
+    if (kind() === "activity") {
+      var col = $("act-col-on").checked ? B.hexToRgb($("act-col").value) : null;
+      var a = {
+        label: label || "Type of Activity",
+        title: title || "Title of Activity",
+        number: ($("num-prefix").value.trim() || "Activity") + " " + (ref || "x.x"),
+        content: content(), labelBg: col, numberBg: col, ligStyle: lig, icon: selectedIcon
+      };
+      if (src === "tle") a.iconHtml = B.tleIcons[$("tle-select").value];
+      else if (src === "image") a.iconHtml = '<div class="icon">' + imgHtml + "</div>";
+      return B.buildActivity(a);
+    }
+
+    // Box: "Label x.x.x:" lead-in, reference only shown when there is a label
+    var prefix = label ? label.replace(/\s*:\s*$/, "") + (ref ? " " + ref : "") + ":" : "";
+    var o = { content: content(), prefix: prefix };
+    if (src === "image") o.iconRaw = imgHtml; else o.icon = selectedIcon;
+    if (title) o.title = title;
+    if ($("new-bg-on").checked) o.bg = B.hexToRgb($("new-bg").value);
+    if ($("new-border-on").checked) o.border = { side: $("new-border-side").value, color: B.hexToRgb($("new-border-color").value) };
+    return B.buildComp(o);
   }
+
 function regen() {
     /*opts.useTLE = tleChk.checked;*/
     /*opts.tleSvg = svgOut.checked;*/
@@ -240,39 +375,93 @@ function regen() {
   }
 
 
-  // --- Auto-detect template from pasted text ---
-  function autoDetect() {
-    if (mode() !== "template" || userPicked) return;
-    var id = B.detect($("input").value);
-    if (id && id !== $("tpl-select").value) {
-      $("tpl-select").value = id;
-      var name = $("tpl-select").options[$("tpl-select").selectedIndex].text;
-      $("detect-note").textContent = "Auto-detected: " + name;
-    }
-  }
-
-  // --- Mode switching ---
-  function syncMode() {
+  // --- Show/hide panels to match the current mode, kind and icon source ---
+  function syncUI() {
     var t = mode() === "template";
-    $("tpl-opts").style.display = t ? "" : "none";
-    $("new-opts").style.display = t ? "none" : "";
-    $("detect-note").textContent = "";
+    var act = kind() === "activity";
+    show("tpl-opts", t);
+    show("new-opts", !t);
+    show("box-appearance", !act);
+    show("act-appearance", act);
+    show("num-prefix-field", act);
+    // TLE icons only exist for activity boxes
+    show("src-tle-label", act);
+    if (!act && $("src-tle").checked) $("src-fa").checked = true;
+    var src = iconSrc();
+    show("icon-fa", src === "fa");
+    show("icon-tle", src === "tle");
+    show("icon-img", src === "image");
+    $("new-label").placeholder = act ? "e.g. Reflection" : "e.g. Key idea";
+    $("new-label-hint").innerHTML = act
+      ? "The type shown in the top tab, e.g. &ldquo;Reflection&rdquo;."
+      : "The bold lead-in, e.g. &ldquo;Key idea&rdquo;. The reference number is added after it.";
+    show("lig-opts", t ? tplFamily() === "activity" : act);
     regen();
   }
-  $("mode-template").addEventListener("change", syncMode);
-  $("mode-new").addEventListener("change", syncMode);
+
+  // --- Detect: button press only ---
+  function runDetect() {
+    var text = $("input").value;
+    if (!text.trim()) { showToast("Paste some text first"); return; }
+    var r = B.analyse(text);
+
+    if (!r) {
+      stripOn = false;
+      note("Nothing detected. Try starting with Type: Title (x.x.x).", true);
+      regen();
+      return;
+    }
+
+    var bits = [];
+    stripOn = !!r.header;
+    if (r.header) {
+      if (r.title) { $("title").value = r.title; bits.push("title"); }
+      if (r.ref) { $("ref").value = r.ref; bits.push("reference " + r.ref); }
+    }
+    var filled = bits.length ? " Filled " + bits.join(" and ") + "." : "";
+    var stripped = r.header ? " Header removed from the output." : "";
+
+    if (r.id) {
+      $("mode-template").checked = true;
+      $("tpl-select").value = r.id;
+      var name = $("tpl-select").options[$("tpl-select").selectedIndex].text;
+      note((r.keywordOnly ? "Matched keyword: " : "Detected: ") + name + "." + filled + stripped);
+    } else {
+      // Header found but the type isn't a known template: build it in Create new
+      $("mode-new").checked = true;
+      $("new-label").value = r.type;
+      note("Type \u201c" + r.type + "\u201d not recognised, so switched to Create new." + filled + stripped, true);
+      showToast("Type \u201c" + r.type + "\u201d wasn't recognised. Check for a typo?", 4000);
+    }
+    syncUI();
+  }
+
+  function clearAll() {
+    $("input").value = "";
+    $("title").value = "";
+    $("ref").value = "";
+    stripOn = false;
+    note("");
+    regen();
+    $("input").focus();
+  }
 
   // --- Wire inputs ---
-  $("input").addEventListener("input", function () { autoDetect(); regen(); });
-  $("tpl-select").addEventListener("change", function () { userPicked = true; $("detect-note").textContent = ""; regen(); });
-  ["tpl-title", "tpl-ref", "new-label", "new-title"].forEach(function (id) {
-    $(id).addEventListener("input", regen);
+  ["mode-template", "mode-new", "kind-box", "kind-activity", "src-fa", "src-tle", "src-img", "tpl-select"].forEach(function (id) {
+    $(id).addEventListener("change", syncUI);
   });
-  ["new-bg-on", "new-bg", "new-border-on", "new-border-side", "new-border-color"].forEach(function (id) {
+  ["input", "title", "ref", "new-label", "num-prefix", "img-src", "img-size",
+   "new-bg-on", "new-bg", "new-border-on", "new-border-side", "new-border-color",
+   "act-col-on", "act-col", "tle-select", "tpl-tle-icons", "opt-nolig"].forEach(function (id) {
     $(id).addEventListener("input", regen);
+    $(id).addEventListener("change", regen);
   });
   $("icon-search").addEventListener("input", function () { renderIconGrid(this.value); });
-  $("tpl-tle-icons").addEventListener("change", regen);
+  $("tpl-select").addEventListener("change", function () {
+    note(stripOn ? "Box type changed manually. The detected header is still removed from the output." : "");
+  });
+  $("detect").addEventListener("click", runDetect);
+  $("clear").addEventListener("click", clearAll);
 
   $("copy").addEventListener("click", function () {
     var out = $("output").value;
@@ -295,7 +484,7 @@ function regen() {
   // --- Init ---
   renderIconGrid("");
   updateIconLabel();
-  regen();
+  syncUI();
 })();
 </script>
 </body>
