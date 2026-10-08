@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WBS my.wbs content tools</title>
+
+<!-- Shared theme: same folder as this file. Provides --wbs, --ink, --line etc. and the <header> style. -->
+<link rel="stylesheet" href="wbs-tools.css">
+
+<style>
+  /* Hub-only styles. Everything is prefixed .hub- so nothing clashes with wbs-tools.css. */
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+
+  .hub-tabs {
+    display: flex; gap: 2px; padding: 0 16px;
+    background: var(--panel, #fff); border-bottom: 1px solid var(--line, #e3e1e8);
+    overflow-x: auto; flex: none;
+  }
+  .hub-tab {
+    font: inherit; font-weight: 600; font-size: .9rem;
+    background: none; border: none; border-radius: 0;
+    border-bottom: 3px solid transparent;
+    padding: 12px 16px 9px; color: var(--muted, #6b6b76);
+    cursor: pointer; white-space: nowrap;
+  }
+  .hub-tab:hover { color: var(--ink, #1c1c20); }
+  .hub-tab[aria-selected="true"] { color: var(--wbs-dark, #0054A4); border-bottom-color: var(--wbs, #00A9E0); }
+  .hub-tab:focus-visible { outline: 2px solid var(--wbs, #00A9E0); outline-offset: -2px; }
+  .hub-tab .hub-ver { font-weight: 400; font-size: .75rem; margin-left: 6px; color: var(--muted, #6b6b76); }
+
+  .hub-panels { flex: 1; min-height: 0; position: relative; }
+  .hub-panel { position: absolute; inset: 0; }
+  .hub-panel[hidden] { display: none; }
+  .hub-panel iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+  .hub-empty { padding: 40px 24px; max-width: 60ch; }
+  .hub-empty code { font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>my.wbs TLE content tools</h1>
+</header>
+
+<div class="hub-tabs" role="tablist" aria-label="Tools" id="hubTabs"></div>
+<main class="hub-panels" id="hubPanels"></main>
+
+<script>
+/* ======================================================================
+   TOOL REGISTRY: the only part you should need to edit.
+   ----------------------------------------------------------------------
+   id       lowercase, no spaces. Used in the URL hash (index.html#petrock).
+   name     tab label.
+   title    iframe title read by screen readers.
+   version  shown on the tab. Also builds the default file name below.
+   file     path to the tool, RELATIVE (no leading slash), all lowercase.
+            Leave as '' and the tab shows a "not set" message.
+   The first entry opens by default.
+   ====================================================================== */
+const TOOLS = [
+  { id: 'petrock',   name: 'Petrock',   title: 'Petrock transcript formatter', version: '', file: 'petrock.html' /* e.g. 'petrock-1.6.html' */ },
+  { id: 'southpaw',  name: 'Southpaw',  title: 'Southpaw box and activity templates', version: '', file: 'southpaw.html' },
+  { id: 'tafelberg', name: 'Tafelberg', title: 'Tafelberg table builder',       version: '', file: 'tafelberg.html' },
+  { id: 'skippy',    name: 'Skippy',    title: 'Skippy jump link box builder',  version: '', file: 'skippy.html' },
+  { id: 'varnisher', name: 'Varnisher', title: 'Varnisher source code cleaner', version: '', file: 'varnisher.html' },
+  // { id: 'watermarker', name: 'Watermarker', title: 'Image watermarker', version: '', file: '' },
+];
+/* ====================================================================== */
+
+const tabsEl = document.getElementById('hubTabs');
+const panelsEl = document.getElementById('hubPanels');
+
+// Build tabs and panels from the registry
+TOOLS.forEach(tool => {
+  const tab = document.createElement('button');
+  tab.type = 'button';
+  tab.className = 'hub-tab';
+  tab.id = 'tab-' + tool.id;
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-controls', 'panel-' + tool.id);
+  tab.setAttribute('aria-selected', 'false');
+  tab.tabIndex = -1;
+  tab.textContent = tool.name;
+  if (tool.version) {
+    const v = document.createElement('span');
+    v.className = 'hub-ver';
+    v.textContent = 'v' + tool.version;
+    tab.appendChild(v);
+  }
+  tab.addEventListener('click', () => select(tool.id, true));
+  tabsEl.appendChild(tab);
+
+  const panel = document.createElement('section');
+  panel.className = 'hub-panel';
+  panel.id = 'panel-' + tool.id;
+  panel.setAttribute('role', 'tabpanel');
+  panel.setAttribute('aria-labelledby', tab.id);
+  panel.hidden = true;
+  panelsEl.appendChild(panel);
+});
+
+// Create the iframe the first time a tab opens, then keep it so work isn't lost
+function load(tool) {
+  const panel = document.getElementById('panel-' + tool.id);
+  if (panel.dataset.loaded) return;
+  panel.dataset.loaded = 'true';
+
+  if (!tool.file) {
+    panel.innerHTML =
+      '<div class="hub-empty"><h2>' + tool.name + ' isn\u2019t set up yet</h2>' +
+      '<p>Add its file path to the <code>TOOLS</code> list in <code>index.html</code>.</p></div>';
+    return;
+  }
+  const frame = document.createElement('iframe');
+  frame.src = tool.file;
+  frame.title = tool.title || tool.name;
+  frame.setAttribute('allow', 'clipboard-read; clipboard-write');
+  panel.appendChild(frame);
+}
+
+function select(id, updateHash) {
+  const tool = TOOLS.find(t => t.id === id) || TOOLS[0];
+  TOOLS.forEach(t => {
+    const on = t.id === tool.id;
+    const tab = document.getElementById('tab-' + t.id);
+    tab.setAttribute('aria-selected', on);
+    tab.tabIndex = on ? 0 : -1;
+    document.getElementById('panel-' + t.id).hidden = !on;
+  });
+  load(tool);
+  document.title = tool.name + ' \u2013 my.wbs content tools';
+  if (updateHash && location.hash !== '#' + tool.id) location.hash = tool.id;
+}
+
+// Keyboard: arrows move and activate, Home/End jump to the ends
+tabsEl.addEventListener('keydown', e => {
+  const tabs = [...tabsEl.querySelectorAll('[role="tab"]')];
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0) return;
+  let next = null;
+  if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+  else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = tabs.length - 1;
+  if (next === null) return;
+  e.preventDefault();
+  tabs[next].focus();
+  select(TOOLS[next].id, true);
+});
+
+// Deep links and back button
+window.addEventListener('hashchange', () => select(location.hash.slice(1), false));
+select(location.hash.slice(1), false);
+</script>
+
+<!-- ======================================================================
+  OPTIONAL: hide each tool's own header when it's inside the hub.
+  1. Add this to the <head> of each tool (or once in toolTemplate.html):
+       <script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+  2. Add this rule to wbs-tools.css:
+       .embedded header { display: none; }
+  Opened directly, the tool looks exactly as it does now.
+  ====================================================================== -->
+</body>
+</html>

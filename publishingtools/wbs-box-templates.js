@@ -30,6 +30,15 @@
     }).join("\n");
   }
 
+  // Standard closing wording for a box. Skipped if the author has already
+  // typed it (punctuation and case are ignored), so it never appears twice.
+  function disclaimerHtml(text, content, align) {
+    if (!text) return "";
+    if (norm(content).indexOf(norm(text)) !== -1) return "";
+    var style = align ? ' style="text-align: ' + align + ';"' : "";
+    return "\n<p" + style + ">" + esc(text) + "</p>";
+  }
+
   function iconSpan(icon, color, extra) {
     if (!icon) return "";
     var cls = "wbs-lu-activity-ico " + icon + (extra ? " " + extra : "");
@@ -54,21 +63,24 @@
     var style = sp.length ? ' style="' + sp.join(" ") + '"' : "";
 
     var label = "";
-    if (o.icon || o.prefix || o.title) {
-      var ic = iconSpan(o.icon, o.iconColor, o.iconExtra);
+    if (o.icon || o.iconRaw || o.prefix || o.title) {
+      var ic = o.iconRaw ? o.iconRaw : iconSpan(o.icon, o.iconColor, o.iconExtra);
       var pre = o.prefix ? ('<strong' + (o.prefixColor ? ' style="color: ' + o.prefixColor + ';"' : "") + ">" + esc(o.prefix) + "</strong>") : "";
       var ttl = (o.title !== undefined && o.title !== null && o.title !== "") ? "<strong>" + esc(o.title) + "</strong>" : "";
       var guts = pre + (ttl ? (pre ? " " : "") + ttl : "");
       if (o.mono) guts = '<span style="font-family: \'Courier New\' , monospace;">' + guts + "</span>";
       label = '<div class="icon">' + ic + guts + "</div>\n";
     }
-    return '<div class="' + classes + '"' + style + ">\n" + label + paras(o.content, "left") + "\n</div>";
+        return '<div class="' + classes + '"' + style + ">\n" + label + paras(o.content, "left") + disclaimerHtml(o.disclaimer, o.content, "left") + "\n</div>";
   }
 
   // --- Activity builder ----------------------------------------------------
-  // o: { label, icon, labelBg, numberBg, title, number, content, iconHtml }
+  // o: { label, icon, labelBg, numberBg, title, number, content, iconHtml, ligStyle }
+  // ligStyle: true (default) keeps style="font-variant-ligatures: no-common-ligatures;"
+  //           false strips it from the title and description divs.
   function buildActivity(o) {
     o = o || {};
+    var lig = o.ligStyle === false ? "" : ' style="font-variant-ligatures: no-common-ligatures;"';
     var labelStyle = o.labelBg ? ' style="background-color: ' + o.labelBg + ';"' : "";
     var numBg = o.numberBg || o.labelBg;
     var numStyle = numBg ? ' style="background-color: ' + numBg + ';"' : "";
@@ -86,11 +98,11 @@
       iconDiv,
       "</div>",
       '<div class="wbs-lu-activityinner clearfix">',
-      '<div class="wbs-lu-activity-title tinymce-wbs-protected" style="font-variant-ligatures: no-common-ligatures;">',
+      '<div class="wbs-lu-activity-title tinymce-wbs-protected"' + lig + '>',
       "<p>" + esc(o.title || "Title of Activity") + "</p>",
       "</div>",
-      '<div class="wbs-lu-activityinner-2 clearfix wbs-lu-activity-description tinymce-wbs-protected" style="font-variant-ligatures: no-common-ligatures;">',
-      paras(o.content, null),
+      '<div class="wbs-lu-activityinner-2 clearfix wbs-lu-activity-description tinymce-wbs-protected"' + lig + '>',
+      paras(o.content, null) + disclaimerHtml(o.disclaimer, o.content),
       "</div>",
       "</div>",
       '<div class="wbs-lu-activity-number"' + numStyle + ">" + esc(o.number || "Activity x.x") + "</div>",
@@ -129,26 +141,39 @@
     ].join("\n");
   }
 
-  // --- TLE image icon HTML (used when "Use TLE images" is ticked) ----------
-/*  var TLE_ICONS = {
-    poll:         '<div class="icon"><img src="/rafile/i/1492044/v/33/f/15/23A2B29E-D2DD-CCCF-8275336CC1ADD508.png" alt="" width="18" height="18"></div>',
-    exercise:     '<div class="icon"><img src="/rafile/i/1492044/v/33/f/14/DF93579D-9611-E338-ABA7CB0AB327ABAC.png" alt="" width="21" height="27"></div>',
-    photowall:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/13/DF920AB1-F2C3-12BC-AB61E4959521E020.png" alt="" width="21" height="27"></div>',
-    stopthink:    '<div class="icon"><img src="/rafile/i/1492044/v/33/f/12/DF90945A-9D79-0C09-E8DC4CE87DC9C2F9.png" alt="" width="21" height="27"></div>',
-    guidedread:   '<div class="icon"><img src="/rafile/i/1622788/v/6/f/15/2AD403C0-CDC8-BCE5-FE5BEBAD3783C583.png" alt="" width="21" height="27"></div>',
-    wbslive:      '<div class="icon"><img src="/rafile/i/1492044/v/33/f/19/2A90E513-DB70-9860-643AD1EFFBD52569.png" alt="" width="21" height="21"></div>'
-  };*/
+  // --- TLE image icon HTML (used when "Use TLE images" is ticked) -------
 
  var TLE_ICONS = {
-    poll:           '<div class="icon"><img src="images/poll.png" alt="" width="18" height="18"></div>',
-    exercise:       '<div class="icon"><img src="images/exercise.png" alt="" width="21" height="27"></div>',
-    photowall:      '<div class="icon"><img src="images/photowall.png" alt="" width="21" height="27"></div>',
-    stopthink:      '<div class="icon"><img src="images/stopandthink.png" alt="" width="21" height="27"></div>',
-    guidedread:     '<div class="icon"><img src="images/guidedreading.png" alt="" width="21" height="27"></div>',
-    libraryreading: '<div class="icon"><img src="images/libraryreading.png" alt="" width="21" height="27"></div>',
-    webreading:     '<div class="icon"><img src="images/webreading.png" alt="" width="21" height="27"></div>',
-    wbslive:        '<div class="icon"><img src="images/wbslive.png" alt="" width="21" height="21"></div>'
+  poll:           '<div class="icon"><span class="icon icon-poll" aria-hidden="true"></span>&nbsp;</div>',
+  exercise:       '<div class="icon"><span class="icon icon-exercise" aria-hidden="true">&nbsp;</span></div>',
+  photowall:      '<div class="icon"><span class="icon icon-photowall" aria-hidden="true">&nbsp;</span></div>',
+  stopthink:      '<div class="icon"><span class="icon icon-stopthink" aria-hidden="true">&nbsp;</span></div>',
+  guidedread:     '<div class="icon"><span class="icon icon-guidedread" aria-hidden="true">&nbsp;</span></div>',
+  libraryreading: '<div class="icon"><span class="icon icon-libraryreading" aria-hidden="true">&nbsp;</span></div>',
+  webreading:     '<div class="icon"><span class="icon icon-webreading" aria-hidden="true">&nbsp;</span></div>',
+  wbslive:        '<div class="icon"><span class="icon icon-wbslive" aria-hidden="true">&nbsp;</span></div>'
   };
+
+  // Display labels for the TLE icons (used by the Create new picker).
+  // Keys must match TLE_ICONS above.
+  var TLE_LIST = [
+    { key: "stopthink", label: "Stop and think" },
+    { key: "exercise", label: "Exercise" },
+    { key: "poll", label: "Poll" },
+    { key: "photowall", label: "Photo wall" },
+    { key: "guidedread", label: "Guided reading (textbook)" },
+    { key: "libraryreading", label: "Library reading" },
+    { key: "webreading", label: "Web reading" },
+    { key: "wbslive", label: "wbsLive" }
+  ];
+
+  // Placeholder <img> for icons that will be uploaded on my.wbs after pasting.
+  // src is left as typed so it can be swapped in TinyMCE's image dialog.
+  function imgIcon(src, size) {
+    var s = parseInt(size, 10);
+    var dims = s > 0 ? ' width="' + s + '" height="' + s + '"' : "";
+    return '<img src="' + esc(src || "images/your-icon.png").replace(/"/g, "&quot;") + '" alt=""' + dims + ">";
+  }
 
   // --- Template definitions ------------------------------------------------
   var TEMPLATES = [
@@ -182,7 +207,7 @@
 
     // ---- Activity family ----
     { id: "talking", name: "Talking point", family: "activity", keywords: ["talking point"], icon: "fa fa-comments",
-      params: { label: "Talking point", icon: "fa fa-comments", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Talking point", icon: "fa fa-comments", disclaimer: "Please post your answer in the comments below (maximum ### words) [Delete the following if not required] and respond to at least one other comment.", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "stopthink", name: "Stop and think", family: "activity", keywords: ["stop and think"], icon: "fa fa-pause-circle-o",
       params: { label: "Stop and think", icon: "fa fa-pause-circle-o", numberPrefix: "Activity", refPlaceholder: "x.x",
@@ -192,14 +217,14 @@
       params: { label: "Group work", icon: "fa fa-users", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "journal", name: "Journal", family: "activity", keywords: ["journal"], icon: "fa fa-address-book",
-      params: { label: "Journal", icon: "fa fa-address-book", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Journal", icon: "fa fa-address-book", disclaimer: "Please complete this task in your learning journal accessed from the main menu at the top of the module space.", numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "photowall", name: "Photo wall", family: "activity", keywords: ["photo wall", "photo"], icon: "fa fa-picture-o",
-      params: { label: "Photo wall", icon: "fa fa-picture-o", numberPrefix: "Activity", refPlaceholder: "x.x",
+      params: { label: "Photo wall", icon: "fa fa-picture-o", disclaimer: "To upload your photo, please scroll down and click on 'add your image'. Please use the title field and text box to make it clear what you are illustrating.", numberPrefix: "Activity", refPlaceholder: "x.x",
         tleIconKey: "photowall" } },
 
     { id: "quiz", name: "Quiz", family: "activity", keywords: ["quiz"], icon: "fa fa-question-circle",
-      params: { label: "Quiz", icon: "fa fa-question-circle", numberPrefix: "Activity", refPlaceholder: "x.x" } },
+      params: { label: "Quiz", icon: "fa fa-question-circle", disclaimer:"If you have any issues or spot errors when completing the quiz, please post in the comments below and mark 'Please clarify'.",numberPrefix: "Activity", refPlaceholder: "x.x" } },
 
     { id: "poll", name: "Poll", family: "activity", keywords: ["poll"], icon: "fa fa-bar-chart",
       params: { label: "Poll", icon: "fa fa-bar-chart", numberPrefix: "Activity", refPlaceholder: "x.x",
@@ -222,8 +247,7 @@
         tleIconKey: "webreading" } },
 
     { id: "read-case", name: "Guided reading — case study", family: "activity", keywords: ["case study"], icon: "fa fa-suitcase",
-      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x",
-        tleIconKey: "guidedread" } },
+      params: { label: "Case study", icon: "fa fa-suitcase", labelBg: "rgb(0,84,164)", numberPrefix: "Guided reading", refPlaceholder: "x.x", } },
 
     { id: "wbslive", name: "wbsLive", family: "activity", keywords: ["wbslive"], icon: "fa fa-video-camera",
       params: { label: "wbsLive", icon: "fa fa-video-camera", labelBg: "rgb(166,0,0)", numberPrefix: "wbsLive", refPlaceholder: "x",
@@ -248,7 +272,7 @@
     if (typeof t.render === "function") return t.render(content, opts);
     var p = t.params || {};
     if (t.family === "comp") {
-      var o = { classes: p.classes, bg: p.bg, border: p.border, extraStyle: p.extraStyle, content: content };
+            var o = { classes: p.classes, bg: p.bg, border: p.border, extraStyle: p.extraStyle, content: content, disclaimer: opts.disclaimers === false ? "" : p.disclaimer };
       if (p.hasLabel !== false) {
         o.icon = p.icon; o.iconColor = p.iconColor; o.iconExtra = p.iconExtra; o.mono = p.mono;
         var ref = opts.reference || p.refPlaceholder || "x.x.x";
@@ -262,7 +286,9 @@
     var num = (p.numberPrefix || "Activity") + " " + (opts.reference || p.refPlaceholder || "x.x");
     var actOpts = {
       label: p.label, icon: p.icon, labelBg: p.labelBg, numberBg: p.numberBg || p.labelBg,
-      title: opts.title || p.titlePlaceholder || "Title of Activity", number: num, content: content
+      title: opts.title || p.titlePlaceholder || "Title of Activity", number: num, content: content,
+      ligStyle: opts.ligStyle,
+      disclaimer: opts.disclaimers === false ? "" : p.disclaimer
     };
     // Swap in TLE image icon when the flag is set and this template supports it
     if (opts.useTLE && p.tleIconKey && TLE_ICONS[p.tleIconKey]) {
@@ -271,18 +297,91 @@
     return buildActivity(actOpts);
   }
 
-  // Return the id of the most specific template whose keyword appears in the text.
+  // Return the id of the most specific template whose keyword appears in the
+  // text as whole words (so "poll" doesn't match "pollution").
   function detect(text) {
-    var hay = (text || "").toLowerCase();
+    var hay = " " + norm(text) + " ";
     var pairs = [];
     TEMPLATES.forEach(function (t) {
-      (t.keywords || []).forEach(function (k) { pairs.push({ id: t.id, k: k.toLowerCase() }); });
+      (t.keywords || []).forEach(function (k) { pairs.push({ id: t.id, k: norm(k) }); });
     });
     pairs.sort(function (a, b) { return b.k.length - a.k.length; }); // longest keyword wins
     for (var i = 0; i < pairs.length; i++) {
-      if (hay.indexOf(pairs[i].k) !== -1) return pairs[i].id;
+      if (hay.indexOf(" " + pairs[i].k + " ") !== -1) return pairs[i].id;
     }
     return null;
+  }
+
+  // --- Header detection: "Type: Title (x.x.x)" ----------------------------
+  // Only a header at the very start of the text is recognised. Supported forms:
+  //   A  Type: Title (x.x.x)   (body may follow on the same line)
+  //   B  Type (x.x.x)          (optionally followed by ": Title" to end of line)
+  //   C  Type: Title           (title runs to the end of the line)
+  // Returns { type, title, ref, header, rest } or null.
+  var RE_A = /^([^:\n()]{1,50}?)[ \t]*:[ \t]*([^\n]*?)[ \t]*\((\d+(?:\.\d+)*)\)[ \t]*[:.\-\u2013\u2014]?\s*/;
+  var RE_B = /^([^:\n()]{1,50}?)[ \t]*\((\d+(?:\.\d+)*)\)[ \t]*(?::[ \t]*([^\n]*))?\s*/;
+  var RE_C = /^([^:\n()]{1,50}?)[ \t]*:[ \t]*([^\n]*)\s*/;
+
+  function validType(t) {
+    t = (t || "").trim();
+    return /^[A-Za-z]/.test(t) && t.split(/\s+/).length <= 6;
+  }
+
+  function parseHeader(text) {
+    var src = text || "";
+    var lead = src.match(/^\s*/)[0].length;
+    var s = src.slice(lead);
+    var m, r = null;
+    if ((m = RE_A.exec(s)) && validType(m[1])) {
+      r = { type: m[1], title: m[2], ref: m[3] };
+    } else if ((m = RE_B.exec(s)) && validType(m[1])) {
+      r = { type: m[1], title: m[3] || "", ref: m[2] };
+    } else if ((m = RE_C.exec(s)) && validType(m[1]) && !/^\/\//.test(m[2])) {
+      r = { type: m[1], title: m[2], ref: "" };
+    }
+    if (!r) return null;
+    r.type = r.type.trim(); r.title = r.title.trim();
+    r.header = s.slice(0, m[0].length);
+    r.rest = s.slice(m[0].length);
+    return r;
+  }
+
+  // Text with a recognised header removed (unchanged if there is none).
+  function stripHeader(text) {
+    var h = parseHeader(text);
+    return h ? h.rest : text;
+  }
+
+  function norm(s) {
+    return String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  // Match a header's type text to a template id: exact match on keyword, name
+  // or label first, then the longest keyword contained in the type.
+  function matchType(type) {
+    var n = norm(type);
+    if (!n) return null;
+    var cands = [];
+    TEMPLATES.forEach(function (t) {
+      var list = (t.keywords || []).concat([t.name, t.params && t.params.label]);
+      list.forEach(function (k) { if (k) cands.push({ id: t.id, k: norm(k) }); });
+    });
+    for (var i = 0; i < cands.length; i++) if (cands[i].k === n) return cands[i].id;
+    cands.sort(function (a, b) { return b.k.length - a.k.length; });
+    for (var j = 0; j < cands.length; j++) {
+      if ((" " + n + " ").indexOf(" " + cands[j].k + " ") !== -1) return cands[j].id;
+    }
+    return null;
+  }
+
+  // One-stop detection used by the Detect button.
+  // Header found  -> { header, type, title, ref, rest, id (template id or null) }
+  // No header     -> { id, keywordOnly: true } from a keyword anywhere, or null.
+  function analyse(text) {
+    var h = parseHeader(text);
+    if (h) { h.id = matchType(h.type); return h; }
+    var id = detect(text);
+    return id ? { id: id, keywordOnly: true } : null;
   }
 
   // A practical, extendable set of Font Awesome 4 icon names (without the "fa fa-").
@@ -304,6 +403,13 @@
     detect: detect,
     buildComp: buildComp,
     buildActivity: buildActivity,
-    hexToRgb: hexToRgb
+    hexToRgb: hexToRgb,
+    tleIcons: TLE_ICONS,
+    tleList: TLE_LIST,
+    imgIcon: imgIcon,
+    parseHeader: parseHeader,
+    stripHeader: stripHeader,
+    matchType: matchType,
+    analyse: analyse
   };
 })(typeof window !== "undefined" ? window : this);
