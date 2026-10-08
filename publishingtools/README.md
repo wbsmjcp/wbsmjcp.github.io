@@ -1,4 +1,6 @@
-This is a list of tools that run locally via your browser which are helpful for creating material on my.wbs
+This is a list of tools that run locally via your browser and are helpful for creating material on my.wbs.
+
+**New** You can now find them all together in the [pubhub](pubhub.html) - they are still available individually below. 
 
 * [Petrock](petrock.html) - A transcript formatter for Otter/Text
 * [Varnisher](varnisher.html) - Cleans up source code for my.wbs
