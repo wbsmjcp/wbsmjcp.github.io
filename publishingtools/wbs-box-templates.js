@@ -175,20 +175,6 @@
     return '<img src="' + esc(src || "images/your-icon.png").replace(/"/g, "&quot;") + '" alt=""' + dims + ">";
   }
 
-
-  var TLE_ICONS_SVG = {
-    poll:           '<div class="icon"><span class="icon icon-poll" aria-hidden="true">&nbsp;</span></div>',
-    exercise:       '<div class="icon"><span class="icon icon-exercise" aria-hidden="true">&nbsp;</span></div>',
-    photowall:      '<div class="icon"><span class="icon icon-photowall" aria-hidden="true">&nbsp;</span></div>',
-    stopthink:      '<div class="icon"><span class="icon icon-stopthink" aria-hidden="true">&nbsp;</span></div>',
-    guidedread:     '<div class="icon"><span class="icon icon-guidedread" aria-hidden="true">&nbsp;</span></div>',
-    libraryreading: '<div class="icon"><span class="icon icon-libraryreading" aria-hidden="true">&nbsp;</span></div>',
-    webreading:     '<div class="icon"><span class="icon icon-webreading" aria-hidden="true">&nbsp;</span></div>',
-    wbslive:        '<div class="icon"><span class="icon icon-wbslive" aria-hidden="true">&nbsp;</span></div>'
-  };
-
-  var TLE_ICONS = TLE_ICONS_SVG;
-
   // --- Template definitions ------------------------------------------------
   var TEMPLATES = [
     // ---- Comp-example family ----
@@ -294,11 +280,6 @@
         o.prefixColor = p.prefixColor;
         o.title = opts.title || p.titlePlaceholder || "Title (delete if not required)";
       }
-        // Swap in TLE icon markup when the flag is set and this template supports it
-    /*if (opts.useTLE && p.tleIconKey) {
-        var tleMap = opts.tleSvg ? TLE_ICONS_SVG : TLE_ICONS_IMG;
-        if (tleMap[p.tleIconKey]) actOpts.iconHtml = tleMap[p.tleIconKey];
-      }*/
       return buildComp(o);
     }
     // activity
@@ -422,6 +403,14 @@
     detect: detect,
     buildComp: buildComp,
     buildActivity: buildActivity,
-    hexToRgb: hexToRgb
+    hexToRgb: hexToRgb,
+    tleIcons: TLE_ICONS,
+    tleList: TLE_LIST,
+    imgIcon: imgIcon,
+    parseHeader: parseHeader,
+    stripHeader: stripHeader,
+    matchType: matchType,
+    analyse: analyse
   };
 })(typeof window !== "undefined" ? window : this);
+ 
