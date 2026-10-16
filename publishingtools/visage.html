@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visage - Image Handler — learning-content tools</title>
+
+<!-- Shared theme and rules. Keep both files in the SAME FOLDER as this one. -->
+<link rel="stylesheet" href="wbs-tools.css">
+<script src="wbs-image-rules.js"></script>
+<!-- Zip for "Download all". If it fails to load, files download one by one instead. -->
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js" defer></script>
+
+<style>
+  /* Drop zone (same pattern as Marcel) */
+  .drop-zone {
+    position: relative; border: 2px dashed var(--line); border-radius: var(--radius);
+    padding: 32px 20px; text-align: center; background: #fbfbfd;
+    transition: border-color .15s, background .15s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over, .drop-zone:focus-within {
+    border-color: var(--wbs); background: var(--wbs-tint);
+  }
+  .drop-zone .primary-text { font-weight: 600; font-size: .95rem; }
+  .drop-zone .secondary-text { color: var(--muted); font-size: .8rem; margin-top: 4px; }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  /* Limits reference in the side panel */
+  .limits { font-size: .8rem; margin: 0; padding-left: 18px; }
+  .limits li { margin: 4px 0; }
+
+  /* Range slider rows */
+  .field input[type=range] { width: 100%; accent-color: var(--wbs); }
+  .field output { font-weight: 600; color: var(--wbs-dark); }
+
+  /* Gallery */
+  .gallery { list-style: none; margin: 16px 0 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .card { position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .card.is-ready { border-color: var(--good-border); }
+  .card.is-pending { border-color: #f0d8a8; }
+  .card.is-error { border-color: #d9a8a8; }
+  .thumb { aspect-ratio: 4 / 3; background:
+      repeating-conic-gradient(#eeedf1 0% 25%, #fff 0% 50%) 50% / 16px 16px;
+    display: flex; align-items: center; justify-content: center; }
+  .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .tick { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--good); color: #fff; display: none; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px #fff; }
+  .card.is-ready .tick { display: flex; }
+  .card-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .card-name { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-meta { font-size: .78rem; color: var(--muted); }
+  .card-meta .after { color: var(--good); font-weight: 600; }
+  .card-reason { font-size: .76rem; color: var(--ink); margin: 2px 0 0; }
+  .badge { align-self: flex-start; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .badge.ready { background: var(--good-bg); color: var(--good); border: 1px solid var(--good-border); }
+  .badge.pending { background: #fff5e6; color: var(--warn); border: 1px solid #f0d8a8; }
+  .badge.error { background: #fbeaea; color: #8a2020; border: 1px solid #d9a8a8; }
+  .card-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .card-actions button { padding: 5px 10px; font-size: .78rem; }
+  .btn-remove { margin-left: auto; color: var(--muted); }
+
+  .webp-opt { display: flex; gap: 6px; align-items: flex-start; font-size: .76rem; margin-top: 4px;
+    padding: 6px 8px; background: #fbfbfd; border: 1px solid var(--line); border-radius: 6px; }
+  .webp-opt input { margin-top: 2px; accent-color: var(--wbs); flex: none; }
+  .webp-opt small { display: block; color: var(--warn); }
+  .empty-state { text-align: center; color: var(--muted); padding: 18px; font-size: .85rem; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .toast { z-index: 10; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Visage - Image Handler</h1>
+  <p>Checks images against the my.wbs upload limits and fixes the ones that need it. Runs entirely in your browser, nothing is sent anywhere.</p>
+  <p><span class="versionInfo">Version 1.0</span></p>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <aside class="panel" aria-label="Options">
+      <h2>my.wbs limits</h2>
+      <ul class="limits">
+        <li>Rejected only if <strong>over 500 KB</strong> and <strong>over 1024 px</strong> wide or tall.</li>
+        <li>Over 500 KB and too big: compressed to under 500 KB at full size. Only shrunk if compression alone can't get there.</li>
+        <li>Over 6500 px on either side: reduced to 6501 px and compressed.</li>
+      </ul>
+
+      <h2>Options</h2>
+      <div class="field">
+        <label for="q-min">Lowest quality before shrinking: <output id="q-min-out" for="q-min">70</output>%</label>
+        <p class="hint">How far compression may go to keep full dimensions. Below this, the image is shrunk instead.</p>
+        <input type="range" id="q-min" min="50" max="90" step="5" value="70">
+      </div>
+      <div class="field">
+        <label for="q-over">Compression quality, images over 6500 px: <output id="q-over-out" for="q-over">70</output>%</label>
+        <p class="hint">Lower means smaller files. Check text in figures stays legible.</p>
+        <input type="range" id="q-over" min="40" max="90" step="5" value="70">
+      </div>
+      <div class="opt">
+        <input type="checkbox" id="opt-png-jpeg" checked>
+        <label for="opt-png-jpeg">Convert PNGs to JPEG
+          <span class="desc">Only PNGs that need processing and have no transparency. PNG can't be compressed by quality, so without this most PNGs have to be shrunk instead.</span>
+        </label>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label for="suffix">Filename suffix</label>
+        <p class="hint">Added to processed files, e.g. <code>_web</code>. Leave blank to keep the original name.</p>
+        <input type="text" id="suffix" placeholder="(none)" spellcheck="false">
+      </div>
+    </aside>
+
+    <main>
+      <div class="drop-zone" id="drop-zone">
+        <div class="primary-text">Drop images here or click to browse</div>
+        <div class="secondary-text">JPEG, PNG, WebP or GIF. Each image is checked as soon as it is added.</div>
+        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple aria-label="Choose images">
+      </div>
+
+      <ul class="gallery" id="gallery" aria-label="Uploaded images"></ul>
+
+      <div class="actions">
+        <button class="primary" id="btn-process" disabled>Process images</button>
+        <button class="ghost" id="btn-clear">Clear all</button>
+        <button class="primary-output" id="btn-download-all" disabled>Download processed</button>
+      </div>
+
+      <div id="summary" aria-live="polite"><span class="empty">Add some images to check them.</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var R = window.WBSImageRules;
+  var $ = function (id) { return document.getElementById(id); };
+  var TICK_SVG = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var EXT = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" };
+
+  var items = [];   // { id, file, url, width, height, action, status, result, error }
+  var nextId = 1;
+  var busy = false;
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function dims(w, h) { return w + " × " + h + " px"; }
+  function plural(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
+
+  function loadImage(url) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error("This file could not be read as an image.")); };
+      img.src = url;
+    });
+  }
+
+  function toBlob(canvas, type, quality) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (b) {
+        b ? resolve(b) : reject(new Error("The browser ran out of memory encoding this image."));
+      }, type, quality);
+    });
+  }
+
+  // High-quality resize. Prefers createImageBitmap's built-in resampler;
+  // falls back to halving steps on a canvas so large reductions stay sharp.
+  async function resize(src, tw, th) {
+    var canvas = document.createElement("canvas");
+    canvas.width = tw; canvas.height = th;
+    var ctx = canvas.getContext("2d");
+    if (tw === src.width && th === src.height) { ctx.drawImage(src, 0, 0); return canvas; }
+    try {
+      var bmp = await createImageBitmap(src, { resizeWidth: tw, resizeHeight: th, resizeQuality: "high" });
+      ctx.drawImage(bmp, 0, 0, tw, th);
+      bmp.close && bmp.close();
+      return canvas;
+    } catch (e) { /* fall through to stepped resize */ }
+
+    var w = src.width, h = src.height, step = src;
+    while (w / 2 > tw) {
+      w = Math.round(w / 2); h = Math.round(h / 2);
+      var c = document.createElement("canvas"); c.width = w; c.height = h;
+      var cx = c.getContext("2d"); cx.imageSmoothingQuality = "high";
+      cx.drawImage(step, 0, 0, w, h);
+      step = c;
+    }
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(step, 0, 0, tw, th);
+    return canvas;
+  }
+
+  // Checks transparency on a small copy so huge images don't need a full pixel scan.
+  function hasAlpha(canvas) {
+    var s = Math.min(1, 512 / Math.max(canvas.width, canvas.height));
+    var c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(canvas.width * s));
+    c.height = Math.max(1, Math.round(canvas.height * s));
+    var cx = c.getContext("2d");
+    cx.drawImage(canvas, 0, 0, c.width, c.height);
+    var d = cx.getImageData(0, 0, c.width, c.height).data;
+    for (var i = 3; i < d.length; i += 4) if (d[i] < 255) return true;
+    return false;
+  }
+
+  function outName(file, mime) {
+    var base = file.name.replace(/\.[^.]+$/, "");
+    var suffix = $("suffix").value.trim().replace(/[\\/:*?"<>|]/g, "");
+    return base + suffix + (EXT[mime] || ".png");
+  }
+
+  // ── Add & analyse ──────────────────────────────────────────────────────
+  async function addFiles(list) {
+    var added = [];
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (items.some(function (it) { return it.file.name === f.name && it.file.size === f.size; })) continue;
+      var item = { id: nextId++, file: f, url: URL.createObjectURL(f), status: "analysing" };
+      items.push(item); added.push(item);
+    }
+    render();
+    for (var j = 0; j < added.length; j++) await analyse(added[j]);
+    render();
+    if (added.length) toastAnalysis(added);
+  }
+
+  async function analyse(item) {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(item.file.type)) {
+      item.status = "error"; item.error = "Not a supported image type (JPEG, PNG, WebP or GIF)."; return;
+    }
+    try {
+      var img = await loadImage(item.url);
+      item.width = img.naturalWidth; item.height = img.naturalHeight;
+      item.action = R.classify(item.width, item.height, item.file.size);
+      item.status = R.ACTIONS[item.action].ready ? "ready" : "pending";
+      if (item.status === "pending" && item.file.type === "image/gif") {
+        item.status = "error";
+        item.error = "GIFs can't be resized here without losing animation. Resize it in an image editor, or export a PNG.";
+      }
+      if (item.status === "pending" && item.file.type === "image/png") {
+        var s = Math.min(1, 512 / Math.max(item.width, item.height));
+        var small = await createImageBitmap(item.file, {
+          resizeWidth: Math.max(1, Math.round(item.width * s)),
+          resizeHeight: Math.max(1, Math.round(item.height * s)) });
+        item.alpha = hasAlpha(small);
+        small.close && small.close();
+        item.useWebp = false;   // WebP is opt-in per image until my.wbs accepts it
+      }
+    } catch (e) {
+      item.status = "error"; item.error = e.message;
+    }
+  }
+
+  function toastAnalysis(added) {
+    var ready = added.filter(function (i) { return i.status === "ready"; }).length;
+    var pending = added.filter(function (i) { return i.status === "pending"; }).length;
+    if (ready === added.length) {
+      showToast(added.length === 1 ? "✓ Ready to upload as is" : "✓ All " + added.length + " images can be uploaded as is");
+    } else if (pending) {
+      showToast(plural(pending, "image") + " need processing, " + ready + " ready as is");
+    } else {
+      showToast("Some images couldn't be checked, see the gallery");
+    }
+  }
+
+  // ── Process ────────────────────────────────────────────────────────────
+  // Encode a canvas and describe the result. Safari may not encode WebP and returns PNG.
+  async function encode(canvas, type, q) {
+    var blob = await toBlob(canvas, type, q);
+    if (type === "image/webp" && blob.type !== "image/webp") {
+      throw new Error("This browser can't create WebP files. Untick WebP, or try Chrome or Edge.");
+    }
+    return { blob: blob, size: blob.size, type: blob.type || type, q: q, width: canvas.width, height: canvas.height };
+  }
+
+  function describe(res, sourceType, how) {
+    var parts = [];
+    if (res.type !== sourceType) parts.push("Converted to " + (EXT[res.type] || "").slice(1).toUpperCase());
+    if (res.type !== "image/png") parts.push("quality " + Math.round(res.q * 100) + "%");
+    parts.push(how);
+    var s = parts.join(", ");
+    return s.charAt(0).toUpperCase() + s.slice(1) + ".";
+  }
+
+  async function processItem(item) {
+    var L = R.LIMITS, src = await createImageBitmap(item.file);
+    try {
+      var type = item.file.type;
+      if (item.useWebp) type = "image/webp";
+      else if (type === "image/png" && $("opt-png-jpeg").checked && !item.alpha) type = "image/jpeg";
+      var lossy = type !== "image/png";
+      var res, how;
+
+      if (item.action === "oversize") {
+        var t = R.targetSize("oversize", item.width, item.height);
+        var c = await resize(src, t.width, t.height);
+        res = await encode(c, type, Number($("q-over").value) / 100);
+        c.width = c.height = 0;
+        // Optional reduction: never hand back something heavier than the original.
+        if (res.size >= item.file.size) {
+          item.result = { kept: true, width: item.width, height: item.height, size: item.file.size };
+          return;
+        }
+        how = "reduced to " + L.LOOPHOLE_TARGET + " px on the long side";
+      } else {
+        // Clear ONE barrier, size first, so dimensions survive wherever possible.
+        var minQ = Number($("q-min").value) / 100;
+
+        // 1. Full size, compressed.
+        var full = await resize(src, item.width, item.height);
+        res = await R.searchQuality(function (q) { return encode(full, type, q); }, minQ, L.HIGH_QUALITY, L.SIZE_LIMIT, lossy);
+        full.width = full.height = 0;
+        how = "full size kept";
+
+        // 2. Smallest shrink that gets under the size limit.
+        if (!res) {
+          var long = Math.max(item.width, item.height);
+          res = await R.searchLongSide(async function (side) {
+            var d = R.fitLongSide(item.width, item.height, side);
+            var c2 = await resize(src, d.width, d.height);
+            var r2 = await encode(c2, type, lossy ? minQ : undefined);
+            c2.width = c2.height = 0;
+            return r2;
+          }, L.DIM_LIMIT, long, L.SIZE_LIMIT);
+          how = res ? "shrunk only as far as needed to get under 500 KB" : how;
+        }
+
+        // 3. Fallback: fit 1024 px, accepted at any size, so use high quality.
+        if (!res) {
+          var d3 = R.fitLongSide(item.width, item.height, L.DIM_LIMIT);
+          var c3 = await resize(src, d3.width, d3.height);
+          res = await encode(c3, type, L.HIGH_QUALITY);
+          c3.width = c3.height = 0;
+          how = "scaled to fit 1024 px, as compression alone couldn't get it under 500 KB";
+        }
+      }
+
+      if (!R.accepted(res.width, res.height, res.size)) {
+        throw new Error("The result still breaks the limits. Try a lower quality.");
+      }
+      var note = describe(res, item.file.type, how);
+      if (res.type === "image/webp") note += " my.wbs doesn't accept WebP yet, so check before uploading.";
+      item.result = { blob: res.blob, name: outName(item.file, res.type), width: res.width, height: res.height,
+                      size: res.size, note: note };
+    } finally {
+      item.status = "ready";
+      src.close && src.close();
+    }
+  }
+
+  $("btn-process").addEventListener("click", async function () {
+    var queue = items.filter(function (i) { return i.status === "pending"; });
+    if (!queue.length || busy) return;
+    busy = true; render();
+    var done = 0;
+    for (var i = 0; i < queue.length; i++) {
+      var item = queue[i];
+      item.status = "processing"; render();
+      await new Promise(function (r) { setTimeout(r, 30); });   // let the UI paint
+      try { await processItem(item); done++; }
+      catch (e) { item.result = null; item.status = "error"; item.error = e.message; }
+      render();
+    }
+    busy = false; render();
+    showToast(done === queue.length ? "✓ " + plural(done, "image") + " processed" : (queue.length - done) + " failed, see the gallery");
+  });
+
+  // ── Download ───────────────────────────────────────────────────────────
+  function saveBlob(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  $("btn-download-all").addEventListener("click", async function () {
+    var out = items.filter(function (i) { return i.result && i.result.blob; });
+    if (!out.length) { showToast("Process some images first"); return; }
+    if (out.length === 1 || typeof fflate === "undefined") {
+      out.forEach(function (i) { saveBlob(i.result.blob, i.result.name); });
+      showToast("Downloaded " + plural(out.length, "file"));
+      return;
+    }
+    var files = {}, used = {};
+    for (var k = 0; k < out.length; k++) {
+      var name = out[k].result.name, n = 1;
+      while (used[name]) name = out[k].result.name.replace(/(\.[^.]+)$/, "-" + (++n) + "$1");
+      used[name] = true;
+      files[name] = [new Uint8Array(await out[k].result.blob.arrayBuffer()), { level: 0 }]; // already compressed
+    }
+    saveBlob(new Blob([fflate.zipSync(files)], { type: "application/zip" }), "my-wbs-images.zip");
+    showToast("Downloaded " + plural(out.length, "image") + " as a zip");
+  });
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  function cardHTML(item) {
+    var a = item.action ? R.ACTIONS[item.action] : null;
+    var meta = item.width ? dims(item.width, item.height) + ", " + R.formatBytes(item.file.size) : R.formatBytes(item.file.size);
+    var badge, reason = "", after = "", buttons = "";
+
+    if (item.status === "analysing") { badge = '<span class="badge pending">Checking…</span>'; }
+    else if (item.status === "processing") { badge = '<span class="badge pending">Processing…</span>'; reason = a.reason; }
+    else if (item.status === "error") { badge = '<span class="badge error">Needs attention</span>'; reason = item.error; }
+    else if (item.status === "pending") {
+      badge = '<span class="badge pending">' + esc(a.label) + '</span>'; reason = a.reason;
+      if (item.file.type === "image/png") {
+        var willJpeg = $("opt-png-jpeg").checked && !item.alpha;
+        buttons = '<label class="webp-opt" for="webp-' + item.id + '">' +
+          '<input type="checkbox" id="webp-' + item.id + '" data-act="webp"' + (item.useWebp ? " checked" : "") + (busy ? " disabled" : "") + '>' +
+          '<span>Save as WebP' + (item.alpha ? ", keeping transparency" : "") +
+          '<small>Not yet accepted by my.wbs.' + (willJpeg ? " Otherwise this becomes a JPEG." : (item.alpha ? " Otherwise this stays PNG and may need shrinking." : "")) + '</small></span></label>';
+      }
+    }
+    else if (item.result && item.result.kept) {
+      badge = '<span class="badge ready">Ready as is</span>';
+      reason = "Reducing it made no saving, so upload the original.";
+    } else if (item.result) {
+      badge = '<span class="badge ready">Processed</span>';
+      after = '<div class="card-meta">Now <span class="after">' + dims(item.result.width, item.result.height) + ", " + R.formatBytes(item.result.size) + "</span></div>";
+      reason = item.result.note;
+      buttons = '<button class="ghost" data-act="download">Download</button>';
+    } else { badge = '<span class="badge ready">' + esc(a.label) + '</span>'; reason = a.reason; }
+
+    return '<div class="thumb"><img src="' + item.url + '" alt=""></div>' +
+      '<span class="tick" title="Ready to upload">' + TICK_SVG + '</span>' +
+      '<div class="card-body">' +
+        '<div class="card-name" title="' + esc(item.file.name) + '">' + esc(item.file.name) + '</div>' +
+        '<div class="card-meta">' + meta + '</div>' + after + badge +
+        (reason ? '<p class="card-reason">' + esc(reason) + '</p>' : "") +
+        (item.status === "pending" ? buttons : "") +
+        '<div class="card-actions">' + (item.status === "pending" ? "" : buttons) +
+          '<button class="ghost btn-remove" data-act="remove" aria-label="Remove ' + esc(item.file.name) + '"' + (busy ? " disabled" : "") + '>Remove</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function render() {
+    var g = $("gallery");
+    g.innerHTML = "";
+    if (!items.length) {
+      g.innerHTML = '<li class="empty-state">No images added yet</li>';
+    }
+    items.forEach(function (item) {
+      var li = document.createElement("li");
+      li.className = "card is-" + item.status;
+      li.dataset.id = item.id;
+      li.innerHTML = cardHTML(item);
+      g.appendChild(li);
+    });
+
+    var pending = items.filter(function (i) { return i.status === "pending"; }).length;
+    var ready = items.filter(function (i) { return i.status === "ready"; }).length;
+    var errors = items.filter(function (i) { return i.status === "error"; }).length;
+    var processed = items.filter(function (i) { return i.result && i.result.blob; }).length;
+
+    $("btn-process").disabled = busy || !pending;
+    $("btn-process").textContent = busy ? "Processing…" : (pending ? "Process " + plural(pending, "image") : "Process images");
+    $("btn-download-all").disabled = busy || !processed;
+    $("btn-clear").disabled = busy;
+
+    $("summary").innerHTML = items.length
+      ? '<strong>' + ready + '</strong> ready to upload' +
+        (pending ? ', <strong>' + pending + '</strong> to process' : '') +
+        (errors ? ', <strong>' + errors + '</strong> need attention' : '')
+      : '<span class="empty">Add some images to check them.</span>';
+  }
+
+  $("gallery").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    var id = Number(btn.closest(".card").dataset.id);
+    var idx = items.findIndex(function (i) { return i.id === id; });
+    if (idx < 0) return;
+    if (btn.dataset.act === "download") saveBlob(items[idx].result.blob, items[idx].result.name);
+    if (btn.dataset.act === "remove" && !busy) {
+      URL.revokeObjectURL(items[idx].url);
+      items.splice(idx, 1); render();
+    }
+  });
+
+  $("gallery").addEventListener("change", function (e) {
+    if (e.target.dataset.act !== "webp") return;
+    var id = Number(e.target.closest(".card").dataset.id);
+    var item = items.find(function (i) { return i.id === id; });
+    if (item) item.useWebp = e.target.checked;
+  });
+  // The global JPEG toggle changes the hint text on PNG cards
+  $("opt-png-jpeg").addEventListener("change", render);
+
+  $("btn-clear").addEventListener("click", function () {
+    items.forEach(function (i) { URL.revokeObjectURL(i.url); });
+    items = []; render();
+  });
+
+  // ── Options ────────────────────────────────────────────────────────────
+  ["q-min", "q-over"].forEach(function (id) {
+    $(id).addEventListener("input", function () { $(id + "-out").textContent = $(id).value; });
+  });
+
+  // ── Drop zone ──────────────────────────────────────────────────────────
+  var dz = $("drop-zone");
+  dz.addEventListener("dragover", function (e) { e.preventDefault(); dz.classList.add("drag-over"); });
+  dz.addEventListener("dragleave", function () { dz.classList.remove("drag-over"); });
+  dz.addEventListener("drop", function (e) {
+    e.preventDefault(); dz.classList.remove("drag-over");
+    if (!busy) addFiles(Array.prototype.slice.call(e.dataTransfer.files));
+  });
+  $("file-input").addEventListener("change", function () {
+    if (!busy) addFiles(Array.prototype.slice.call(this.files));
+    this.value = "";
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
